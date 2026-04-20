@@ -125,10 +125,6 @@ class SessionConfigs {
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400},
         {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_OKX_CHANNEL_CANDLESTICK},
     };
-    std::map<std::string, std::string> fieldWebsocketChannelMapErisx = {
-        {CCAPI_TRADE, CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE},
-    };
     std::map<std::string, std::string> fieldWebsocketChannelMapKucoin = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_MATCH},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2},
@@ -137,14 +133,6 @@ class SessionConfigs {
     std::map<std::string, std::string> fieldWebsocketChannelMapKucoinFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_MATCH},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_LEVEL2},
-    };
-    std::map<std::string, std::string> fieldWebsocketChannelMapFtx = {
-        {CCAPI_TRADE, CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TRADES},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS},
-    };
-    std::map<std::string, std::string> fieldWebsocketChannelMapFtxUs = {
-        {CCAPI_TRADE, CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TRADES},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapDeribit = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES},
@@ -196,10 +184,6 @@ class SessionConfigs {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_TRANSACTION},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_DEPTH},
     };
-    std::map<std::string, std::string> fieldWebsocketChannelMapWhitebit = {
-        {CCAPI_TRADE, CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_TRADES},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_DEPTH},
-    };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -245,20 +229,11 @@ class SessionConfigs {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapOkx) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_OKX].push_back(fieldWebsocketChannel.first);
     }
-    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapErisx) {
-      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_ERISX].push_back(fieldWebsocketChannel.first);
-    }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapKucoin) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_KUCOIN].push_back(fieldWebsocketChannel.first);
     }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapKucoinFutures) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES].push_back(fieldWebsocketChannel.first);
-    }
-    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapFtx) {
-      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_FTX].push_back(fieldWebsocketChannel.first);
-    }
-    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapFtxUs) {
-      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_FTX_US].push_back(fieldWebsocketChannel.first);
     }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapDeribit) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_DERIBIT].push_back(fieldWebsocketChannel.first);
@@ -293,9 +268,6 @@ class SessionConfigs {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapMexcFutures) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_MEXC_FUTURES].push_back(fieldWebsocketChannel.first);
     }
-    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapWhitebit) {
-      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_WHITEBIT].push_back(fieldWebsocketChannel.first);
-    }
     for (auto& x : this->exchangeFieldMap) {
       x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
     }
@@ -316,11 +288,8 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, fieldWebsocketChannelMapHuobiUsdtSwap},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, fieldWebsocketChannelMapHuobiCoinSwap},
         {CCAPI_EXCHANGE_NAME_OKX, fieldWebsocketChannelMapOkx},
-        {CCAPI_EXCHANGE_NAME_ERISX, fieldWebsocketChannelMapErisx},
         {CCAPI_EXCHANGE_NAME_KUCOIN, fieldWebsocketChannelMapKucoin},
         {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, fieldWebsocketChannelMapKucoinFutures},
-        {CCAPI_EXCHANGE_NAME_FTX, fieldWebsocketChannelMapFtx},
-        {CCAPI_EXCHANGE_NAME_FTX_US, fieldWebsocketChannelMapFtxUs},
         {CCAPI_EXCHANGE_NAME_DERIBIT, fieldWebsocketChannelMapDeribit},
         {CCAPI_EXCHANGE_NAME_GATEIO, fieldWebsocketChannelMapGateio},
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, fieldWebsocketChannelMapGateioPerpetualFutures},
@@ -332,7 +301,6 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_BITMART, fieldWebsocketChannelMapBitmart},
         {CCAPI_EXCHANGE_NAME_MEXC, fieldWebsocketChannelMapMexc},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, fieldWebsocketChannelMapMexcFutures},
-        {CCAPI_EXCHANGE_NAME_WHITEBIT, fieldWebsocketChannelMapWhitebit},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -351,13 +319,10 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_OKX, CCAPI_OKX_URL_WS_BASE},
-        {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_WS_BASE},
         //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
         {CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"},
         //  Kucoin Futures has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
         {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, "CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES_URL_WEBSOCKET_BASE"},
-        {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_WS_BASE},
-        {CCAPI_EXCHANGE_NAME_FTX_US, CCAPI_FTX_US_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO, CCAPI_GATEIO_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, CCAPI_GATEIO_PERPETUAL_FUTURES_URL_WS_BASE},
@@ -369,7 +334,6 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_WS_BASE},
-        {CCAPI_EXCHANGE_NAME_WHITEBIT, CCAPI_WHITEBIT_URL_WS_BASE},
     };
     this->urlWebsocketOrderEntryBase = {
         {CCAPI_EXCHANGE_NAME_OKX, CCAPI_OKX_URL_WS_BASE},
@@ -399,11 +363,8 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, CCAPI_HUOBI_COIN_SWAP_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_OKX, CCAPI_OKX_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, CCAPI_KUCOIN_FUTURES_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_FTX_US, CCAPI_FTX_US_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO, CCAPI_GATEIO_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, CCAPI_GATEIO_PERPETUAL_FUTURES_URL_REST_BASE},
@@ -415,7 +376,6 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_WHITEBIT, CCAPI_WHITEBIT_URL_REST_BASE},
     };
   }
 

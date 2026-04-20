@@ -135,24 +135,12 @@
 #define CCAPI_EXCHANGE_NAME_OKX "okx"
 #endif
 
-#ifndef CCAPI_EXCHANGE_NAME_ERISX
-#define CCAPI_EXCHANGE_NAME_ERISX "erisx"
-#endif
-
 #ifndef CCAPI_EXCHANGE_NAME_KUCOIN
 #define CCAPI_EXCHANGE_NAME_KUCOIN "kucoin"
 #endif
 
 #ifndef CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES
 #define CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES "kucoin-futures"
-#endif
-
-#ifndef CCAPI_EXCHANGE_NAME_FTX
-#define CCAPI_EXCHANGE_NAME_FTX "ftx"
-#endif
-
-#ifndef CCAPI_EXCHANGE_NAME_FTX_US
-#define CCAPI_EXCHANGE_NAME_FTX_US "ftx-us"
 #endif
 
 #ifndef CCAPI_EXCHANGE_NAME_DERIBIT
@@ -197,10 +185,6 @@
 
 #ifndef CCAPI_EXCHANGE_NAME_MEXC_FUTURES
 #define CCAPI_EXCHANGE_NAME_MEXC_FUTURES "mexc-futures"
-#endif
-
-#ifndef CCAPI_EXCHANGE_NAME_WHITEBIT
-#define CCAPI_EXCHANGE_NAME_WHITEBIT "whitebit"
 #endif
 
 #ifndef CCAPI_LAST_PRICE
@@ -433,8 +417,6 @@
 #define CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400 "books"
 #define CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH1_L2_TBT "bbo-tbt"
 #define CCAPI_WEBSOCKET_OKX_CHANNEL_CANDLESTICK "candle"
-#define CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE "MarketDataSubscribe"
-#define CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE "TopOfBookMarketDataSubscribe"
 #define CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_MATCH "/market/match"
 #define CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2 "/market/level2"
 #define CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_TICKER "/market/ticker"
@@ -446,9 +428,6 @@
 #define CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_TICKER "/contractMarket/tickerV2"
 #define CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_LEVEL2DEPTH5 "/contractMarket/level2Depth5"
 #define CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_LEVEL2DEPTH50 "/contractMarket/level2Depth50"
-#define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TRADES "trades"
-#define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS "orderbook"
-#define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TICKER "ticker"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES "trades.{instrument_name}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT "book.{instrument_name}.{interval}"
@@ -485,8 +464,6 @@
 #define CCAPI_WEBSOCKET_MEXC_CHANNEL_DIFF_DEPTH "spot@public.increase.depth.v3.api"
 #define CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_TRANSACTION "deal"
 #define CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_DEPTH "depth"
-#define CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_TRADES "trades"
-#define CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_DEPTH "depth"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif
@@ -981,24 +958,12 @@
 #define CCAPI_OKX_URL_REST_BASE "https://www.okx.com"
 #endif
 
-#ifndef CCAPI_ERISX_URL_REST_BASE
-#define CCAPI_ERISX_URL_REST_BASE "https://trade-api.erisx.com"
-#endif
-
 #ifndef CCAPI_KUCOIN_URL_REST_BASE
 #define CCAPI_KUCOIN_URL_REST_BASE "https://api.kucoin.com"
 #endif
 
 #ifndef CCAPI_KUCOIN_FUTURES_URL_REST_BASE
 #define CCAPI_KUCOIN_FUTURES_URL_REST_BASE "https://api-futures.kucoin.com"
-#endif
-
-#ifndef CCAPI_FTX_URL_REST_BASE
-#define CCAPI_FTX_URL_REST_BASE "https://ftx.com"
-#endif
-
-#ifndef CCAPI_FTX_US_URL_REST_BASE
-#define CCAPI_FTX_US_URL_REST_BASE "https://ftx.us"
 #endif
 
 #ifndef CCAPI_DERIBIT_URL_REST_BASE
@@ -1051,10 +1016,6 @@
 
 #ifndef CCAPI_MEXC_FUTURES_URL_REST_BASE
 #define CCAPI_MEXC_FUTURES_URL_REST_BASE "https://contract.mexc.com"
-#endif
-
-#ifndef CCAPI_WHITEBIT_URL_REST_BASE
-#define CCAPI_WHITEBIT_URL_REST_BASE "https://whitebit.com"
 #endif
 
 // end: exchange REST urls
@@ -1184,18 +1145,6 @@
 #define CCAPI_OKX_BUSINESS_WS_PATH "/ws/v5/business"
 #endif
 
-#ifndef CCAPI_ERISX_URL_WS_BASE
-#define CCAPI_ERISX_URL_WS_BASE "wss://publicmd-api.erisx.com"
-#endif
-
-#ifndef CCAPI_FTX_URL_WS_BASE
-#define CCAPI_FTX_URL_WS_BASE "wss://ftx.com"
-#endif
-
-#ifndef CCAPI_FTX_US_URL_WS_BASE
-#define CCAPI_FTX_US_URL_WS_BASE "wss://ftx.us"
-#endif
-
 #ifndef CCAPI_DERIBIT_URL_WS_BASE
 #define CCAPI_DERIBIT_URL_WS_BASE "wss://www.deribit.com"
 #endif
@@ -1248,10 +1197,6 @@
 #define CCAPI_MEXC_FUTURES_URL_WS_BASE "wss://contract.mexc.com"
 #endif
 
-#ifndef CCAPI_WHITEBIT_URL_WS_BASE
-#define CCAPI_WHITEBIT_URL_WS_BASE "wss://api.whitebit.com"
-#endif
-
 // end: exchange WS urls
 
 // start: exchange FIX urls
@@ -1273,14 +1218,6 @@
 
 #ifndef CCAPI_GEMINI_URL_FIX_PORT
 #define CCAPI_GEMINI_URL_FIX_PORT ""
-#endif
-
-#ifndef CCAPI_FTX_URL_FIX_BASE
-#define CCAPI_FTX_URL_FIX_BASE "tcp+ssl://fix.ftx.com:4363"
-#endif
-
-#ifndef CCAPI_FTX_US_URL_FIX_BASE
-#define CCAPI_FTX_US_URL_FIX_BASE "tcp+ssl://fix.ftx.us:4363"
 #endif
 
 #ifndef CCAPI_DERIBIT_URL_FIX_BASE
@@ -1477,14 +1414,6 @@
 #define CCAPI_OKX_API_X_SIMULATED_TRADING "OKX_API_X_SIMULATED_TRADING"
 #endif
 
-#ifndef CCAPI_ERISX_API_KEY
-#define CCAPI_ERISX_API_KEY "ERISX_API_KEY"
-#endif
-
-#ifndef CCAPI_ERISX_API_SECRET
-#define CCAPI_ERISX_API_SECRET "ERISX_API_SECRET"
-#endif
-
 #ifndef CCAPI_KUCOIN_API_KEY
 #define CCAPI_KUCOIN_API_KEY "KUCOIN_API_KEY"
 #endif
@@ -1511,30 +1440,6 @@
 
 #ifndef CCAPI_KUCOIN_FUTURES_API_PASSPHRASE
 #define CCAPI_KUCOIN_FUTURES_API_PASSPHRASE "KUCOIN_FUTURES_API_PASSPHRASE"
-#endif
-
-#ifndef CCAPI_FTX_API_KEY
-#define CCAPI_FTX_API_KEY "FTX_API_KEY"
-#endif
-
-#ifndef CCAPI_FTX_API_SECRET
-#define CCAPI_FTX_API_SECRET "FTX_API_SECRET"
-#endif
-
-#ifndef CCAPI_FTX_API_SUBACCOUNT
-#define CCAPI_FTX_API_SUBACCOUNT "FTX_API_SUBACCOUNT"
-#endif
-
-#ifndef CCAPI_FTX_US_API_KEY
-#define CCAPI_FTX_US_API_KEY "FTX_US_API_KEY"
-#endif
-
-#ifndef CCAPI_FTX_US_API_SECRET
-#define CCAPI_FTX_US_API_SECRET "FTX_US_API_SECRET"
-#endif
-
-#ifndef CCAPI_FTX_US_API_SUBACCOUNT
-#define CCAPI_FTX_US_API_SUBACCOUNT "FTX_US_API_SUBACCOUNT"
 #endif
 
 #ifndef CCAPI_DERIBIT_CLIENT_ID
@@ -1668,14 +1573,6 @@
 
 #ifndef CCAPI_FIX_PROTOCOL_VERSION_GEMINI
 #define CCAPI_FIX_PROTOCOL_VERSION_GEMINI "FIX.4.4"
-#endif
-
-#ifndef CCAPI_FIX_PROTOCOL_VERSION_FTX
-#define CCAPI_FIX_PROTOCOL_VERSION_FTX "FIX.4.2"
-#endif
-
-#ifndef CCAPI_FIX_PROTOCOL_VERSION_FTX_US
-#define CCAPI_FIX_PROTOCOL_VERSION_FTX_US "FIX.4.2"
 #endif
 
 #ifndef CCAPI_FIX_PROTOCOL_VERSION_DERIBIT

@@ -205,8 +205,6 @@ add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKX)
 
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ERISX)
-
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN)
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES)
 
@@ -230,8 +228,6 @@ add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITMART)
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_MEXC)
 
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES)
-
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_WHITEBIT)
 
 if(CCAPI_ENABLE_LOG_ERROR)
   add_compile_definitions(CCAPI_ENABLE_LOG_ERROR)

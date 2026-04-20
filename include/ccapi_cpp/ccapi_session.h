@@ -49,20 +49,11 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_OKX
 #include "ccapi_cpp/service/ccapi_market_data_service_okx.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
-#include "ccapi_cpp/service/ccapi_market_data_service_erisx.h"
-#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
 #include "ccapi_cpp/service/ccapi_market_data_service_kucoin.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_kucoin_futures.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX
-#include "ccapi_cpp/service/ccapi_market_data_service_ftx.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
-#include "ccapi_cpp/service/ccapi_market_data_service_ftx_us.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 #include "ccapi_cpp/service/ccapi_market_data_service_deribit.h"
@@ -96,9 +87,6 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_mexc_futures.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
-#include "ccapi_cpp/service/ccapi_market_data_service_whitebit.h"
 #endif
 #endif
 // end: enable exchanges for market data
@@ -153,20 +141,11 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_OKX
 #include "ccapi_cpp/service/ccapi_execution_management_service_okx.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
-#include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
-#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
 #include "ccapi_cpp/service/ccapi_execution_management_service_kucoin.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_kucoin_futures.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX
-#include "ccapi_cpp/service/ccapi_execution_management_service_ftx.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
-#include "ccapi_cpp/service/ccapi_execution_management_service_ftx_us.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service_deribit.h"
@@ -201,9 +180,6 @@
 // #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
 // #include "ccapi_cpp/service/ccapi_execution_management_service_mexc_futures.h"
 // #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
-#include "ccapi_cpp/service/ccapi_execution_management_service_whitebit.h"
-#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -217,12 +193,6 @@
 // #endif
 // #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 // #include "ccapi_cpp/service/ccapi_fix_service_gemini.h"
-// #endif
-// #ifdef CCAPI_ENABLE_EXCHANGE_FTX
-// #include "ccapi_cpp/service/ccapi_fix_service_ftx.h"
-// #endif
-// #ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
-// #include "ccapi_cpp/service/ccapi_fix_service_ftx_us.h"
 // #endif
 // #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 // #include "ccapi_cpp/service/ccapi_fix_service_deribit.h"
@@ -364,10 +334,6 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKX] =
         std::make_shared<MarketDataServiceOkx>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ERISX] =
-        std::make_shared<MarketDataServiceErisx>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KUCOIN] =
         std::make_shared<MarketDataServiceKucoin>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -375,14 +341,6 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES] =
         std::make_shared<MarketDataServiceKucoinFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_FTX] =
-        std::make_shared<MarketDataServiceFtx>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_FTX_US] =
-        std::make_shared<MarketDataServiceFtxUs>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_DERIBIT] =
@@ -427,10 +385,6 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_MEXC_FUTURES] =
         std::make_shared<MarketDataServiceMexcFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_WHITEBIT] =
-        std::make_shared<MarketDataServiceWhitebit>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
@@ -498,10 +452,6 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_OKX] =
         std::make_shared<ExecutionManagementServiceOkx>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ERISX] =
-        std::make_shared<ExecutionManagementServiceErisx>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KUCOIN] =
         std::make_shared<ExecutionManagementServiceKucoin>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -509,14 +459,6 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES] =
         std::make_shared<ExecutionManagementServiceKucoinFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX] =
-        std::make_shared<ExecutionManagementServiceFtx>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX_US] =
-        std::make_shared<ExecutionManagementServiceFtxUs>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_DERIBIT] =
@@ -562,10 +504,6 @@ class Session {
 //     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_MEXC_FUTURES] =
 //         std::make_shared<ExecutionManagementServiceMexcFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 // #endif
-// #ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
-//     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_WHITEBIT] =
-//         std::make_shared<ExecutionManagementServiceWhitebit>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-// #endif
 #endif
 
 #ifdef CCAPI_ENABLE_SERVICE_FIX
@@ -580,14 +518,6 @@ class Session {
 // #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 //     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_GEMINI] =
 //         std::make_shared<FixServiceGemini>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-// #endif
-// #ifdef CCAPI_ENABLE_EXCHANGE_FTX
-//     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_FTX] =
-//         std::make_shared<FixServiceFtx>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
-// #endif
-// #ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
-//     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_FTX_US] =
-//         std::make_shared<FixServiceFtxUs>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 // #endif
 // #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 //     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_DERIBIT] =
