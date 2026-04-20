@@ -105,19 +105,12 @@ get_filename_component(OPENSSL_SSL_LIBRARY_DIR ${OPENSSL_SSL_LIBRARY} DIRECTORY)
 if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   message(STATUS "use boost beast websocket")
   if(NOT BOOST_INCLUDE_DIR)
-    include(ExternalProject)
-    ExternalProject_Add(
-      boost
-      URL https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
-      SOURCE_DIR "${CMAKE_BINARY_DIR}/boost"
-      CONFIGURE_COMMAND ""
-      BUILD_COMMAND ""
-      INSTALL_COMMAND ""
-      TEST_COMMAND "")
-    set(BOOST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/boost")
-  else()
-    add_library(boost INTERFACE)
+    set(BOOST_INCLUDE_DIR "$ENV{HOME}/boost_subset")
   endif()
+  if(NOT EXISTS "${BOOST_INCLUDE_DIR}/boost/version.hpp")
+    message(FATAL_ERROR "BOOST_INCLUDE_DIR='${BOOST_INCLUDE_DIR}' is missing boost/version.hpp. Generate the bcp subset with: bcp --boost=<boost_source> asio beast '${BOOST_INCLUDE_DIR}/' (or pass -DBOOST_INCLUDE_DIR=<path>).")
+  endif()
+  add_library(boost INTERFACE)
   if(NOT RAPIDJSON_INCLUDE_DIR)
     include(ExternalProject)
     ExternalProject_Add(

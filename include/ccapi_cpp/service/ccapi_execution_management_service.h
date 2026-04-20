@@ -9,7 +9,6 @@
 #include <memory>
 #include <string>
 
-#include "boost/shared_ptr.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/ccapi_macro.h"
