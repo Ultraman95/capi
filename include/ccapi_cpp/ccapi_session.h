@@ -20,7 +20,30 @@
 
 namespace ccapi {
 
-class ServiceContext;
+/**
+ * Opaque handle for a shared asio io_context + thread pool. Pass one instance
+ * to multiple Sessions to make them share a single event loop (useful for
+ * HFT / colo deployments where thread pinning + single-core cache residency
+ * matter more than per-session parallelism).
+ *
+ * Internally wraps ccapi::ServiceContext, keeping boost.asio types out of
+ * the public include chain.
+ */
+class SharedContext {
+ public:
+  SharedContext();
+  ~SharedContext();
+  SharedContext(const SharedContext&) = delete;
+  SharedContext& operator=(const SharedContext&) = delete;
+
+  void start();
+  void stop();
+
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> pImpl_;
+  friend class Session;  // so Session::Session can read the internal context
+};
 
 /**
  * Pimpl'd session. All asio / service details are hidden behind pImpl_ so
@@ -36,7 +59,7 @@ class Session {
           EventDispatcher* eventDispatcher = nullptr
 #ifndef SWIG
           ,
-          ServiceContext* serviceContextPtr = nullptr
+          SharedContext* sharedContext = nullptr
 #endif
   );
 

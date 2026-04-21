@@ -22,15 +22,10 @@ using ::ccapi::MyEventHandler;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
+using ::ccapi::SharedContext;
 using ::ccapi::Subscription;
 using ::ccapi::toString;
 
-// NOTE: previously this example created one shared ccapi::ServiceContext and
-// passed it to both Sessions. After the Pimpl refactor, ServiceContext is no
-// longer a public type (its asio internals are hidden). The "multiple sessions"
-// demonstration still works here - each Session owns its own internal
-// ServiceContext. If you need a shared io_context across sessions in the
-// future, expose a ServiceContextHandle in the public API.
 int main(int argc, char** argv) {
   SessionOptions sessionOptions_1;
   SessionOptions sessionOptions_2;
@@ -38,8 +33,12 @@ int main(int argc, char** argv) {
   SessionConfigs sessionConfigs_2;
   MyEventHandler eventHandler;
 
-  Session session_1(sessionOptions_1, sessionConfigs_1, &eventHandler);
-  Session session_2(sessionOptions_2, sessionConfigs_2, &eventHandler);
+  // Share a single io_context + thread across both sessions.
+  SharedContext sharedContext;
+  sharedContext.start();
+
+  Session session_1(sessionOptions_1, sessionConfigs_1, &eventHandler, nullptr, &sharedContext);
+  Session session_2(sessionOptions_2, sessionConfigs_2, &eventHandler, nullptr, &sharedContext);
   eventHandler.setSessionPtrs({
       {&session_1, "1"},
       {&session_2, "2"},
@@ -51,6 +50,7 @@ int main(int argc, char** argv) {
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session_1.stop();
   session_2.stop();
+  sharedContext.stop();
   std::cout << "Bye" << std::endl;
   return EXIT_SUCCESS;
 }

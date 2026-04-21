@@ -846,17 +846,31 @@ struct Session::Impl {
   }
 };
 
+// ================= SharedContext thin wrapper =================
+
+struct SharedContext::Impl {
+  // Owns a real ccapi::ServiceContext; lives only in this TU so asio types
+  // never leak into the public header.
+  ServiceContext context;
+};
+
+SharedContext::SharedContext() : pImpl_(std::make_unique<Impl>()) {}
+SharedContext::~SharedContext() = default;
+
+void SharedContext::start() { pImpl_->context.start(); }
+void SharedContext::stop() { pImpl_->context.stop(); }
+
 // ================= Session thin forwarders =================
 
 Session::Session(const SessionOptions& so, const SessionConfigs& sc, EventHandler* eh, EventDispatcher* ed
 #ifndef SWIG
                  ,
-                 ServiceContext* scPtr
+                 SharedContext* sharedContext
 #endif
                  )
     : pImpl_(std::make_unique<Impl>(so, sc, eh, ed,
 #ifndef SWIG
-                                    scPtr
+                                    sharedContext ? &sharedContext->pImpl_->context : nullptr
 #else
                                     nullptr
 #endif
