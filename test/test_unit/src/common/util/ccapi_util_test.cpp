@@ -1,7 +1,8 @@
 #include <chrono>
 #include <iostream>
 
-#include "ccapi_cpp/ccapi_util_private.h"
+#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_internal.h"
 #include "gtest/gtest.h"
 
 namespace ccapi {

@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 
-#include "ccapi_cpp/ccapi_util_private.h"
+#include "ccapi_cpp/ccapi_util.h"
 
 namespace ccapi {
 

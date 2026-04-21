@@ -1,4 +1,5 @@
 #pragma once
+#include "ccapi_cpp/ccapi_util_internal.h"
 
 #include <string>
 #include <variant>

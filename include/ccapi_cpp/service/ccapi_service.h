@@ -45,7 +45,7 @@
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_market_data_message.h"
-#include "ccapi_cpp/ccapi_util_private.h"
+#include "ccapi_cpp/ccapi_util_internal.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"

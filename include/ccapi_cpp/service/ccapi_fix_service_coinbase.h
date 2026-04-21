@@ -1,4 +1,5 @@
 #pragma once
+#include "ccapi_cpp/ccapi_util_internal.h"
 
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE

@@ -8,7 +8,7 @@
 
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/ccapi_logger.h"
-#include "ccapi_cpp/ccapi_util_private.h"
+#include "ccapi_cpp/ccapi_util.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 
 namespace ccapi {

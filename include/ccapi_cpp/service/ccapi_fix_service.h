@@ -1,4 +1,5 @@
 #pragma once
+#include "ccapi_cpp/ccapi_util_internal.h"
 
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifndef CCAPI_FIX_READ_BUFFER_SIZE

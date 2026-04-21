@@ -6,7 +6,7 @@
 #include <string>
 
 #include "ccapi_cpp/ccapi_macro.h"
-#include "ccapi_cpp/ccapi_util_private.h"
+#include "ccapi_cpp/ccapi_util.h"
 // We use macros instead of static constants in the Request class so that SWIG can properly generate C# bindings
 #define CCAPI_REQUEST_OPERATION_TYPE_CUSTOM 0x100
 #define CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PUBLIC_REQUEST 0x200

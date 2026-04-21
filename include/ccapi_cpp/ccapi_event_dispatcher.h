@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "ccapi_cpp/ccapi_logger.h"
-#include "ccapi_cpp/ccapi_util_private.h"
+#include "ccapi_cpp/ccapi_util.h"
 
 namespace ccapi {
 

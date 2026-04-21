@@ -3,7 +3,7 @@
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_macro.h"
-#include "ccapi_cpp/ccapi_util_private.h"
+#include "ccapi_cpp/ccapi_util_internal.h"
 
 namespace ccapi {
 
