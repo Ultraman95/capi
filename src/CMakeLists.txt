@@ -3,7 +3,19 @@ include(CMakePackageConfigHelpers)
 
 set(NAME ccapi_core)
 
+# Optional library-level log level. Off by default (zero runtime cost);
+# set e.g. -DCCAPI_LOG_LEVEL=TRACE to build the library with internal
+# CCAPI_LOGGER_* macros expanded.
+set(CCAPI_LOG_LEVEL "" CACHE STRING
+    "Internal log verbosity (FATAL/ERROR/WARN/INFO/DETAIL/FINE/DEBUG/TRACE). Empty = disabled.")
+
 add_library(${NAME} STATIC ccapi_session.cpp)
+
+if(CCAPI_LOG_LEVEL)
+  string(TOUPPER "${CCAPI_LOG_LEVEL}" _ccapi_log_upper)
+  target_compile_definitions(${NAME} PUBLIC "CCAPI_ENABLE_LOG_${_ccapi_log_upper}")
+  message(STATUS "ccapi_core: library logging enabled at CCAPI_ENABLE_LOG_${_ccapi_log_upper}")
+endif()
 
 # All services enabled: market data, execution management, FIX.
 # All currently maintained exchanges enabled.
