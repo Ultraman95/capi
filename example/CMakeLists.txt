@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 set(NAME example)
 project(${NAME})
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 if(NOT APPLE AND NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
@@ -14,6 +14,23 @@ endif()
 message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 get_filename_component(CCAPI_PROJECT_DIR ../ ABSOLUTE)
 message(STATUS "CCAPI_PROJECT_DIR: ${CCAPI_PROJECT_DIR}")
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  message(STATUS "Using ccache: ${CCACHE_PROGRAM}")
+endif()
+
+if(UNIX AND NOT APPLE)
+  find_program(MOLD_PROGRAM mold)
+  if(MOLD_PROGRAM)
+    add_link_options("-fuse-ld=mold")
+    message(STATUS "Using mold linker: ${MOLD_PROGRAM}")
+  endif()
+endif()
 
 if(NOT BOOST_INCLUDE_DIR)
   set(BOOST_INCLUDE_DIR "$ENV{HOME}/boost_subset")
@@ -61,23 +78,31 @@ if(WIN32)
 endif()
 link_libraries(OpenSSL::Crypto OpenSSL::SSL ${ADDITIONAL_LINK_LIBRARIES})
 add_compile_options(-Wno-deprecated -Wno-nonnull -Wno-deprecated-declarations)
-add_subdirectory(market_data_simple_request)
-add_subdirectory(market_data_simple_subscription)
-add_subdirectory(market_data_advanced_request)
-add_subdirectory(market_data_advanced_subscription)
-add_subdirectory(generic_public_request)
-add_subdirectory(generic_private_request)
-add_subdirectory(execution_management_simple_request)
-add_subdirectory(execution_management_simple_subscription)
-add_subdirectory(execution_management_advanced_request)
-add_subdirectory(execution_management_advanced_subscription)
-add_subdirectory(fix_simple)
-add_subdirectory(fix_advanced)
-add_subdirectory(enable_library_logging)
-add_subdirectory(set_timer)
-add_subdirectory(heartbeat)
-add_subdirectory(override_exchange_url_at_runtime)
-add_subdirectory(test_order_latency)
-add_subdirectory(test_cpu_usage)
-add_subdirectory(use_multiple_sessions)
-add_subdirectory(reduce_build_time)
+# Build the Pimpl'd ccapi core library (feasibility test).
+add_subdirectory(${CCAPI_PROJECT_DIR}/src ${CMAKE_BINARY_DIR}/ccapi_core_build)
+
+set(CCAPI_EXAMPLE_TARGETS
+    market_data_simple_request
+    market_data_simple_subscription
+    market_data_advanced_request
+    market_data_advanced_subscription
+    generic_public_request
+    generic_private_request
+    execution_management_simple_request
+    execution_management_simple_subscription
+    execution_management_advanced_request
+    execution_management_advanced_subscription
+    fix_simple
+    fix_advanced
+    enable_library_logging
+    set_timer
+    heartbeat
+    override_exchange_url_at_runtime
+    test_order_latency
+    test_cpu_usage
+    use_multiple_sessions
+    reduce_build_time)
+
+foreach(t IN LISTS CCAPI_EXAMPLE_TARGETS)
+  add_subdirectory(${t})
+endforeach()

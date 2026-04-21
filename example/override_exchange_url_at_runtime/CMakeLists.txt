@@ -1,6 +1,4 @@
 set(NAME override_exchange_url_at_runtime)
 project(${NAME})
-add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BYBIT)
 add_executable(${NAME} main.cpp)
-add_dependencies(${NAME} boost rapidjson)
+target_link_libraries(${NAME} PRIVATE ccapi_core)

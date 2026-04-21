@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH");
+  Subscription subscription(CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "BTCUSDT", CCAPI_MARKET_DEPTH);
   session.subscribe(subscription);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();

@@ -11,7 +11,6 @@ class MyEventHandler : public EventHandler {
 
 } /* namespace ccapi */
 
-using ::ccapi::ExecutionManagementService;
 using ::ccapi::MyEventHandler;
 using ::ccapi::Request;
 using ::ccapi::Session;
