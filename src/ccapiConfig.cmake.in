@@ -1,0 +1,28 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(OpenSSL)
+find_dependency(ZLIB)
+find_dependency(Threads)
+
+# boost (header-only, asio+beast subset). User can override by setting
+# BOOST_INCLUDE_DIR before find_package(ccapi).
+if(NOT BOOST_INCLUDE_DIR)
+  set(BOOST_INCLUDE_DIR "$ENV{HOME}/boost_subset")
+endif()
+if(NOT EXISTS "${BOOST_INCLUDE_DIR}/boost/version.hpp")
+  message(FATAL_ERROR
+    "ccapi requires a boost (asio+beast) header subset. "
+    "BOOST_INCLUDE_DIR='${BOOST_INCLUDE_DIR}' is missing boost/version.hpp. "
+    "Generate with: bcp --boost=<boost_source> asio beast '${BOOST_INCLUDE_DIR}/' "
+    "(or pass -DBOOST_INCLUDE_DIR=<path>).")
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/ccapiTargets.cmake")
+
+# Attach boost include dir to the imported target so users don't have to
+set_property(TARGET ccapi::ccapi_core APPEND PROPERTY
+  INTERFACE_INCLUDE_DIRECTORIES "${BOOST_INCLUDE_DIR}")
+
+check_required_components(ccapi)

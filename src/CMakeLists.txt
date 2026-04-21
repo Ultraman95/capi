@@ -1,11 +1,12 @@
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 set(NAME ccapi_core)
 
 add_library(${NAME} STATIC ccapi_session.cpp)
 
 # All services enabled: market data, execution management, FIX.
 # All currently maintained exchanges enabled.
-# Users linking against ccapi_core don't need to re-define these - target_link_libraries
-# will propagate them via PUBLIC.
 target_compile_definitions(${NAME} PUBLIC
   # ---- services ----
   CCAPI_ENABLE_SERVICE_MARKET_DATA
@@ -43,22 +44,26 @@ target_compile_definitions(${NAME} PUBLIC
 )
 
 target_include_directories(${NAME} PUBLIC
-  ${CCAPI_PROJECT_DIR}/include
-  ${BOOST_INCLUDE_DIR}
-  ${RAPIDJSON_INCLUDE_DIR}
-  ${OPENSSL_INCLUDE_DIR}
+  $<BUILD_INTERFACE:${CCAPI_PROJECT_DIR}/include>
+  $<BUILD_INTERFACE:${BOOST_INCLUDE_DIR}>
+  $<BUILD_INTERFACE:${RAPIDJSON_INCLUDE_DIR}>
+  $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 # hffix needed for FIX service support
 if(DEFINED HFFIX_INCLUDE_DIR)
-  target_include_directories(${NAME} PUBLIC ${HFFIX_INCLUDE_DIR})
+  target_include_directories(${NAME} PUBLIC $<BUILD_INTERFACE:${HFFIX_INCLUDE_DIR}>)
 endif()
 
-# zlib needed for HUOBI / OKX / BITMART (gzip decompression)
+find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
-target_link_libraries(${NAME} PUBLIC ZLIB::ZLIB)
+find_package(Threads REQUIRED)
+target_link_libraries(${NAME} PUBLIC
+  OpenSSL::Crypto OpenSSL::SSL
+  ZLIB::ZLIB
+  Threads::Threads)
 
-# boost, rapidjson, hffix come from the parent project's ExternalProject setup
 if(TARGET boost)
   add_dependencies(${NAME} boost)
 endif()
@@ -68,3 +73,46 @@ endif()
 if(TARGET hffix)
   add_dependencies(${NAME} hffix)
 endif()
+
+# ---------------------- install / packaging ----------------------
+
+# Public headers (user-facing only; service/* and *_internal.h stay inside lib)
+set(CCAPI_PUBLIC_HEADERS
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_element.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_event.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_event_dispatcher.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_event_handler.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_logger.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_macro.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_market_data_message.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_message.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_queue.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_request.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_session.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_session_configs.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_session_options.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_subscription.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_url.h
+  ${CCAPI_PROJECT_DIR}/include/ccapi_cpp/ccapi_util.h
+)
+
+install(TARGETS ${NAME}
+  EXPORT ccapiTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+install(FILES ${CCAPI_PUBLIC_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ccapi_cpp)
+
+install(EXPORT ccapiTargets
+  FILE ccapiTargets.cmake
+  NAMESPACE ccapi::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccapi)
+
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/ccapiConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/ccapiConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccapi)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ccapiConfig.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccapi)
