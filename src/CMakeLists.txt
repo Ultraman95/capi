@@ -1,0 +1,70 @@
+set(NAME ccapi_core)
+
+add_library(${NAME} STATIC ccapi_session.cpp)
+
+# All services enabled: market data, execution management, FIX.
+# All currently maintained exchanges enabled.
+# Users linking against ccapi_core don't need to re-define these - target_link_libraries
+# will propagate them via PUBLIC.
+target_compile_definitions(${NAME} PUBLIC
+  # ---- services ----
+  CCAPI_ENABLE_SERVICE_MARKET_DATA
+  CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
+  CCAPI_ENABLE_SERVICE_FIX
+  # ---- exchanges ----
+  CCAPI_ENABLE_EXCHANGE_COINBASE
+  CCAPI_ENABLE_EXCHANGE_GEMINI
+  CCAPI_ENABLE_EXCHANGE_KRAKEN
+  CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES
+  CCAPI_ENABLE_EXCHANGE_BITSTAMP
+  CCAPI_ENABLE_EXCHANGE_BITFINEX
+  CCAPI_ENABLE_EXCHANGE_BITMEX
+  CCAPI_ENABLE_EXCHANGE_BINANCE_US
+  CCAPI_ENABLE_EXCHANGE_BINANCE
+  CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
+  CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
+  CCAPI_ENABLE_EXCHANGE_HUOBI
+  CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
+  CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP
+  CCAPI_ENABLE_EXCHANGE_OKX
+  CCAPI_ENABLE_EXCHANGE_KUCOIN
+  CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
+  CCAPI_ENABLE_EXCHANGE_DERIBIT
+  CCAPI_ENABLE_EXCHANGE_GATEIO
+  CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
+  CCAPI_ENABLE_EXCHANGE_CRYPTOCOM
+  CCAPI_ENABLE_EXCHANGE_BYBIT
+  CCAPI_ENABLE_EXCHANGE_ASCENDEX
+  CCAPI_ENABLE_EXCHANGE_BITGET
+  CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+  CCAPI_ENABLE_EXCHANGE_BITMART
+  CCAPI_ENABLE_EXCHANGE_MEXC
+  CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
+)
+
+target_include_directories(${NAME} PUBLIC
+  ${CCAPI_PROJECT_DIR}/include
+  ${BOOST_INCLUDE_DIR}
+  ${RAPIDJSON_INCLUDE_DIR}
+  ${OPENSSL_INCLUDE_DIR}
+)
+
+# hffix needed for FIX service support
+if(DEFINED HFFIX_INCLUDE_DIR)
+  target_include_directories(${NAME} PUBLIC ${HFFIX_INCLUDE_DIR})
+endif()
+
+# zlib needed for HUOBI / OKX / BITMART (gzip decompression)
+find_package(ZLIB REQUIRED)
+target_link_libraries(${NAME} PUBLIC ZLIB::ZLIB)
+
+# boost, rapidjson, hffix come from the parent project's ExternalProject setup
+if(TARGET boost)
+  add_dependencies(${NAME} boost)
+endif()
+if(TARGET rapidjson)
+  add_dependencies(${NAME} rapidjson)
+endif()
+if(TARGET hffix)
+  add_dependencies(${NAME} hffix)
+endif()
