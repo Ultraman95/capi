@@ -12,7 +12,10 @@ class MarketDataServiceMexcFutures : public MarketDataService {
                                ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_MEXC_FUTURES;
-    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
+    // MEXC 2024-11 moved futures WS path from /ws -> /edge on contract.mexc.com.
+    // (The 2026 doc pushes wss://api.mexc.com/ws as new unified entry but that
+    // URL rejects anonymous upgrades at the time of writing.)
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/edge";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     // this->setHostWsFromUrlWs(this->baseUrlWs);

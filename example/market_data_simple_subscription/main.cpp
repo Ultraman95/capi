@@ -33,13 +33,17 @@ using ::ccapi::Subscription;
 using ::ccapi::toString;
 
 int main(int argc, char** argv) {
+  const std::string exchange = argc > 1 ? argv[1] : CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES;
+  const std::string symbol = argc > 2 ? argv[2] : "BTCUSDT";
+  const int seconds = argc > 3 ? std::stoi(argv[3]) : 10;
+
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription(CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "BTCUSDT", CCAPI_MARKET_DEPTH);
+  Subscription subscription(exchange, symbol, CCAPI_MARKET_DEPTH);
   session.subscribe(subscription);
-  std::this_thread::sleep_for(std::chrono::seconds(10));
+  std::this_thread::sleep_for(std::chrono::seconds(seconds));
   session.stop();
   std::cout << "Bye" << std::endl;
   return EXIT_SUCCESS;

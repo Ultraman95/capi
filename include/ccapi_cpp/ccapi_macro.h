@@ -1190,10 +1190,17 @@
 #endif
 
 #ifndef CCAPI_MEXC_URL_WS_BASE
-#define CCAPI_MEXC_URL_WS_BASE "wss://wbs.mexc.com"
+// Old wbs.mexc.com works for handshake but rejects subscriptions ("Blocked!").
+// MEXC recommends wbs-api.mexc.com as the current spot WebSocket base.
+#define CCAPI_MEXC_URL_WS_BASE "wss://wbs-api.mexc.com"
 #endif
 
 #ifndef CCAPI_MEXC_FUTURES_URL_WS_BASE
+// Old wss://contract.mexc.com/ws now 301-redirects to /404.
+// MEXC doc recommends wss://api.mexc.com/ws but that path rejects anonymous
+// upgrades (HTTP 404) at the time of writing. contract.mexc.com/edge works
+// for public market data, so we stick with that until the new entry is
+// anonymously reachable.
 #define CCAPI_MEXC_FUTURES_URL_WS_BASE "wss://contract.mexc.com"
 #endif
 
