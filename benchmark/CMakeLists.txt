@@ -55,6 +55,21 @@ else()
   add_library(rapidjson INTERFACE)
 endif()
 
+if(NOT HFFIX_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(
+    hffix
+    URL https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.4.1.tar.gz
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/hffix"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    TEST_COMMAND "")
+  set(HFFIX_INCLUDE_DIR "${CMAKE_BINARY_DIR}/hffix/include")
+else()
+  add_library(hffix INTERFACE)
+endif()
+
 include(FetchContent)
 FetchContent_Declare(
   hdr_histogram
@@ -67,7 +82,7 @@ FetchContent_MakeAvailable(hdr_histogram)
 
 include_directories(
   ${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR}
-  ${OPENSSL_INCLUDE_DIR})
+  ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 
 find_package(OpenSSL REQUIRED)
 set(ADDITIONAL_LINK_LIBRARIES "")
@@ -76,6 +91,10 @@ if(WIN32)
 endif()
 link_libraries(OpenSSL::Crypto OpenSSL::SSL ${ADDITIONAL_LINK_LIBRARIES})
 add_compile_options(-Wno-deprecated -Wno-nonnull -Wno-deprecated-declarations)
+
+# Build libccapi_core (Pimpl) alongside, so benchmark measures the same code
+# path user apps take.
+add_subdirectory(${CCAPI_PROJECT_DIR}/src ${CMAKE_BINARY_DIR}/ccapi_core_build)
 
 set(CCAPI_BENCHMARK_TARGETS market_data_latency)
 

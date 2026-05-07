@@ -1,7 +1,4 @@
 set(NAME market_data_latency)
 project(${NAME})
-add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES)
 add_executable(${NAME} main.cpp)
-add_dependencies(${NAME} boost rapidjson)
-target_link_libraries(${NAME} PRIVATE hdr_histogram_static)
+target_link_libraries(${NAME} PRIVATE ccapi_core hdr_histogram_static)
