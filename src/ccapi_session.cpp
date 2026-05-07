@@ -183,9 +183,6 @@
 #endif
 // end: enable exchanges for FIX
 
-#include "ccapi_cpp/service/ccapi_service.h"
-#include "ccapi_cpp/service/ccapi_service_context.h"
-
 #include <algorithm>
 #include <map>
 #include <unordered_set>

@@ -1,9 +1,7 @@
 #pragma once
 
-#include <optional>
 #include <string>
 
-#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util.h"
 
 namespace ccapi {

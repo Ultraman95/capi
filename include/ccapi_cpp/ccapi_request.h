@@ -1,8 +1,6 @@
 #pragma once
 
-#include <condition_variable>
 #include <map>
-#include <mutex>
 #include <string>
 
 #include "ccapi_cpp/ccapi_macro.h"

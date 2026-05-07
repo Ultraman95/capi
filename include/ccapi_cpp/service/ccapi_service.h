@@ -35,8 +35,6 @@
 #define CCAPI_WEBSOCKET_WRITE_BUFFER_SIZE (1 << 20)
 #endif
 
-#include <regex>
-
 #include "boost/asio/strand.hpp"
 #include "boost/beast/core.hpp"
 #include "boost/beast/http.hpp"
@@ -55,7 +53,6 @@
 
 // clang-format on
 
-#include "ccapi_cpp/ccapi_fix_connection.h"
 #include "ccapi_cpp/ccapi_http_connection.h"
 #include "ccapi_cpp/ccapi_http_retry.h"
 #if CCAPI_REQUIRES_INFLATE_STREAM

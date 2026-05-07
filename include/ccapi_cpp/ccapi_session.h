@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ccapi_cpp/ccapi_macro.h"
-
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_event_dispatcher.h"
 #include "ccapi_cpp/ccapi_event_handler.h"

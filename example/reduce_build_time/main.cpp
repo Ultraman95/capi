@@ -1,4 +1,5 @@
 #include "ccapi_cpp/ccapi_event_handler.h"
+#include <iostream>
 #include "my_session.h"
 
 namespace ccapi {

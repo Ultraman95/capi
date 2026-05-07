@@ -1,4 +1,5 @@
 #include "ccapi_cpp/ccapi_session.h"
+#include <iostream>
 
 #include <hdr/hdr_histogram.h>
 

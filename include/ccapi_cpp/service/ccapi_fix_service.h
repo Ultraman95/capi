@@ -8,6 +8,7 @@
 #ifndef CCAPI_FIX_WRITE_BUFFER_SIZE
 #define CCAPI_FIX_WRITE_BUFFER_SIZE (1 << 20)
 #endif
+#include "ccapi_cpp/ccapi_fix_connection.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 #include "hffix.hpp"
 namespace hff = hffix;
