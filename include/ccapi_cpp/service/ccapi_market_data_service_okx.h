@@ -58,7 +58,12 @@ class MarketDataServiceOkx : public MarketDataService {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
-      if (conflateIntervalMilliseconds < 100) {
+      // OKX 官方文档(WS / Order book channel):books50-l2-tbt / books-l2-tbt 仅限
+      // 交易手续费等级 VIP4 及以上的 API 用户,且需登录(未登录 60011,等级不足 64003)。
+      // 因此没有凭证的连接只能用公开频道:bbo-tbt(1 档,10ms)、books5(5 档,100ms)、
+      // books(400 档,100ms 增量)。有凭证时仍选 l2-tbt,等级不足会收到 SUBSCRIPTION_FAILURE。
+      const bool canUseL2Tbt = !wsConnectionPtr->credential.empty();
+      if (conflateIntervalMilliseconds < 100 && (marketDepthRequested == 1 || canUseL2Tbt)) {
         if (marketDepthRequested == 1) {
           channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH1_L2_TBT;
         } else if (marketDepthRequested <= 50) {
@@ -147,7 +152,39 @@ class MarketDataServiceOkx : public MarketDataService {
       std::string eventStr = it != document.MemberEnd() ? it->value.GetString() : "";
       if (eventStr == "login") {
         this->startSubscribe(wsConnectionPtr);
-
+      } else if (eventStr == "error") {
+        // OKX 的错误响应(订阅失败 60011/60012/64003、登录失败 60009 等)通常不带 arg,
+        // 见官方文档 Failure example:{"event":"error","code":"60012","msg":"...","connId":"..."}。
+        // 带 arg 时只通知对应 channel/instId 的订阅,否则通知该连接上的全部订阅。
+        event.setType(Event::Type::SUBSCRIPTION_STATUS);
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(Message::Type::SUBSCRIPTION_FAILURE);
+        std::vector<std::string> correlationIdList;
+        auto itArg = document.FindMember("arg");
+        if (itArg != document.MemberEnd() && itArg->value.IsObject() && itArg->value.HasMember("channel") && itArg->value.HasMember("instId")) {
+          auto itConnection = this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnectionPtr->id);
+          if (itConnection != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+            auto itChannel = itConnection->second.find(itArg->value["channel"].GetString());
+            if (itChannel != itConnection->second.end()) {
+              auto itSymbol = itChannel->second.find(itArg->value["instId"].GetString());
+              if (itSymbol != itChannel->second.end()) {
+                correlationIdList.insert(correlationIdList.end(), itSymbol->second.begin(), itSymbol->second.end());
+              }
+            }
+          }
+        } else {
+          // 登录失败发生在 startSubscribe 之前,按 channel 索引的表此时还是空的,
+          // 所以直接取连接自身的订阅列表。
+          for (const auto& subscription : wsConnectionPtr->subscriptionList) {
+            correlationIdList.push_back(subscription.getCorrelationId());
+          }
+        }
+        message.setCorrelationIdList(correlationIdList);
+        Element element;
+        element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
+        message.setElementList({element});
+        event.setMessageList({message});
       } else {
         if (document.IsObject() && document.HasMember("arg")) {
           const rj::Value& arg = document["arg"];
@@ -180,17 +217,6 @@ class MarketDataServiceOkx : public MarketDataService {
               message.setType(Message::Type::SUBSCRIPTION_STARTED);
               Element element;
               element.insert(CCAPI_INFO_MESSAGE, textMessageView);
-              message.setElementList({element});
-              messageList.emplace_back(std::move(message));
-              event.setMessageList(messageList);
-            } else if (eventStr == "error") {
-              event.setType(Event::Type::SUBSCRIPTION_STATUS);
-              std::vector<Message> messageList;
-              Message message;
-              message.setTimeReceived(timeReceived);
-              message.setType(Message::Type::SUBSCRIPTION_FAILURE);
-              Element element;
-              element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
               message.setElementList({element});
               messageList.emplace_back(std::move(message));
               event.setMessageList(messageList);
