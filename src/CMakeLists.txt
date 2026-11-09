@@ -1,3 +1,77 @@
+cmake_minimum_required(VERSION 3.14)
+
+# Standalone build mode: this CMakeLists.txt can be configured directly
+# (cmake -S src -B build/lib) to produce libccapi_core.a + cmake package config
+# without depending on example/, benchmark/, or any other consumer. When used
+# via add_subdirectory(...) from a parent project, the if(NOT ...) guards skip
+# the standalone bootstrap and use whatever the parent already supplied.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  project(ccapi_core LANGUAGES CXX)
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+  endif()
+  if(NOT APPLE AND NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+  endif()
+  find_program(CCACHE_PROGRAM ccache)
+  if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  endif()
+  if(UNIX AND NOT APPLE)
+    find_program(MOLD_PROGRAM mold)
+    if(MOLD_PROGRAM)
+      add_link_options("-fuse-ld=mold")
+    endif()
+  endif()
+  add_compile_options(-Wno-deprecated -Wno-nonnull -Wno-deprecated-declarations)
+endif()
+
+# Common deps: each parent project would also set these up; the guards keep
+# them shared across modes.
+if(NOT DEFINED CCAPI_PROJECT_DIR)
+  get_filename_component(CCAPI_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+endif()
+
+if(NOT BOOST_INCLUDE_DIR)
+  set(BOOST_INCLUDE_DIR "$ENV{HOME}/boost_subset")
+endif()
+if(NOT EXISTS "${BOOST_INCLUDE_DIR}/boost/version.hpp")
+  message(FATAL_ERROR
+    "BOOST_INCLUDE_DIR='${BOOST_INCLUDE_DIR}' is missing boost/version.hpp. "
+    "Generate the bcp subset with: bcp --boost=<boost_source> asio beast '${BOOST_INCLUDE_DIR}/' "
+    "(or pass -DBOOST_INCLUDE_DIR=<path>).")
+endif()
+
+if(NOT RAPIDJSON_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(
+    rapidjson
+    URL https://github.com/Tencent/rapidjson/archive/3b2441b87f99ab65f37b141a7b548ebadb607b96.tar.gz
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/rapidjson"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    TEST_COMMAND "")
+  set(RAPIDJSON_INCLUDE_DIR "${CMAKE_BINARY_DIR}/rapidjson/include")
+endif()
+
+if(NOT HFFIX_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(
+    hffix
+    URL https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.4.1.tar.gz
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/hffix"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    TEST_COMMAND "")
+  set(HFFIX_INCLUDE_DIR "${CMAKE_BINARY_DIR}/hffix/include")
+endif()
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
@@ -120,6 +194,13 @@ install(EXPORT ccapiTargets
   FILE ccapiTargets.cmake
   NAMESPACE ccapi::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccapi)
+
+# Also export to the build tree, so downstream projects can use
+# find_package(ccapi) against the build dir directly without `cmake --install`.
+# Pair it with the build-tree ccapiConfig.cmake generated below.
+export(EXPORT ccapiTargets
+  FILE ${CMAKE_CURRENT_BINARY_DIR}/ccapiTargets.cmake
+  NAMESPACE ccapi::)
 
 configure_package_config_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/ccapiConfig.cmake.in
