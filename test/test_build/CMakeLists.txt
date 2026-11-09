@@ -65,7 +65,12 @@ foreach(SERVICE IN LISTS SERVICE_LIST)
   foreach(EXCHANGE IN LISTS EXCHANGE_LIST)
     message(STATUS "EXCHANGE=${EXCHANGE}")
     set(CCAPI_CPP_TARGET_NAME "${SERVICE}__${EXCHANGE}")
-    add_executable("${CCAPI_CPP_TARGET_NAME}" ${SOURCE_LOGGER} test.cpp)
+    # Session 已 Pimpl 化,实现与各交易所 service 都在 src/ccapi_session.cpp。
+    # 这里在"只启用当前 SERVICE + EXCHANGE"的宏条件下重新编译它,
+    # 才能检验单个交易所头文件能否独立编译(不能改为链接 ccapi_core:
+    # 那个库启用了全部交易所,检验就失去意义)。
+    add_executable("${CCAPI_CPP_TARGET_NAME}" ${SOURCE_LOGGER} test.cpp
+                                              ${CCAPI_PROJECT_DIR}/src/ccapi_session.cpp)
 
     if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
       add_dependencies("${CCAPI_CPP_TARGET_NAME}" boost rapidjson hffix)

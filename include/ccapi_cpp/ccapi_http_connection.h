@@ -3,6 +3,8 @@
 #include <string>
 
 #include "ccapi_cpp/ccapi_logger.h"
+#include "boost/beast/core.hpp"
+#include "boost/beast/ssl.hpp"
 namespace beast = boost::beast;
 
 namespace ccapi {
