@@ -1112,7 +1112,7 @@ class Service : public std::enable_shared_from_this<Service> {
   void onWsHandshakeWs(std::shared_ptr<WsConnection> wsConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("ws async_handshake callback start");
     if (ec) {
-      CCAPI_LOGGER_TRACE("ws handshake fail");
+      CCAPI_LOGGER_TRACE(std::string("ws handshake fail: ec.value=") + std::to_string(ec.value()) + " ec.message=" + ec.message() + " ec.category=" + ec.category().name());
       this->onFail(wsConnectionPtr);
       return;
     }

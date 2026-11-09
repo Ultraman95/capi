@@ -85,6 +85,14 @@ class MarketDataServiceKucoinBase : public MarketDataService {
               urlWebsocketBase += "?token=";
               urlWebsocketBase += std::string(document["data"]["token"].GetString());
               wsConnectionPtr->setUrl(urlWebsocketBase);
+              // The connection's stream was created in setWsConnectionStream() during subscribe,
+              // when the url was still the placeholder string and isSecure was therefore false —
+              // so we ended up with a plain tcp_stream. Now that setUrl() has parsed the real
+              // wss:// url and flipped isSecure=true, recreate the stream so connect() runs the
+              // TLS handshake. Without this, the first ws upgrade is sent as plaintext on port 443
+              // and the server resets after ~7s waiting for a TLS ClientHello (only ccapi's auto-
+              // retry then succeeds, because the retry path calls setWsConnectionStream again).
+              that->setWsConnectionStream(wsConnectionPtr);
               that->connect(wsConnectionPtr);
               for (const auto& subscription : wsConnectionPtr->subscriptionList) {
                 auto instrument = subscription.getInstrument();
