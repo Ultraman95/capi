@@ -77,6 +77,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_bitget_futures.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_UTA
+#include "ccapi_cpp/service/ccapi_market_data_service_bitget_uta.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMART
 #include "ccapi_cpp/service/ccapi_market_data_service_bitmart.h"
 #endif
@@ -85,6 +88,9 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_mexc_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
+#include "ccapi_cpp/service/ccapi_market_data_service_hyperliquid.h"
 #endif
 #endif
 // end: enable exchanges for market data
@@ -166,11 +172,19 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitget_futures.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_UTA
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitget_uta.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMART
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitmart.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC
 #include "ccapi_cpp/service/ccapi_execution_management_service_mexc.h"
+#endif
+// Hyperliquid 执行管理需要 secp256k1 + msgpack;依赖缺失时 CMake 定义
+// CCAPI_DISABLE_HYPERLIQUID_EXECUTION_MANAGEMENT,只保留行情。
+#if defined(CCAPI_ENABLE_EXCHANGE_HYPERLIQUID) && !defined(CCAPI_DISABLE_HYPERLIQUID_EXECUTION_MANAGEMENT)
+#include "ccapi_cpp/service/ccapi_execution_management_service_hyperliquid.h"
 #endif
 #endif
 // end: enable exchanges for execution management
@@ -334,6 +348,10 @@ struct Session::Impl {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
         std::make_shared<MarketDataServiceBitgetFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_UTA
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITGET_UTA] =
+        std::make_shared<MarketDataServiceBitgetUta>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMART
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMART] =
         std::make_shared<MarketDataServiceBitmart>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -345,6 +363,10 @@ struct Session::Impl {
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_MEXC_FUTURES] =
         std::make_shared<MarketDataServiceMexcFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HYPERLIQUID] =
+        std::make_shared<MarketDataServiceHyperliquid>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
@@ -448,6 +470,10 @@ struct Session::Impl {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
         std::make_shared<ExecutionManagementServiceBitgetFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_UTA
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITGET_UTA] =
+        std::make_shared<ExecutionManagementServiceBitgetUta>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMART
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITMART] =
         std::make_shared<ExecutionManagementServiceBitmart>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -455,6 +481,10 @@ struct Session::Impl {
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_MEXC] =
         std::make_shared<ExecutionManagementServiceMexc>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#if defined(CCAPI_ENABLE_EXCHANGE_HYPERLIQUID) && !defined(CCAPI_DISABLE_HYPERLIQUID_EXECUTION_MANAGEMENT)
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HYPERLIQUID] =
+        std::make_shared<ExecutionManagementServiceHyperliquid>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 

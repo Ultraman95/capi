@@ -124,10 +124,26 @@ target_compile_definitions(${NAME} PUBLIC
   CCAPI_ENABLE_EXCHANGE_ASCENDEX
   CCAPI_ENABLE_EXCHANGE_BITGET
   CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+  CCAPI_ENABLE_EXCHANGE_BITGET_UTA
   CCAPI_ENABLE_EXCHANGE_BITMART
   CCAPI_ENABLE_EXCHANGE_MEXC
   CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
+  CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
 )
+
+# Hyperliquid 执行管理需要 secp256k1(签名)+ msgpack-cxx(header-only,订单序列化)。
+# 两者都找到才启用;否则只编行情服务,执行管理在 ccapi_session.cpp 里被跳过。
+find_path(SECP256K1_INCLUDE_DIR secp256k1_recovery.h)
+find_library(SECP256K1_LIBRARY secp256k1)
+find_path(MSGPACK_INCLUDE_DIR msgpack.hpp)
+if(SECP256K1_INCLUDE_DIR AND SECP256K1_LIBRARY AND MSGPACK_INCLUDE_DIR)
+  target_include_directories(${NAME} PRIVATE ${SECP256K1_INCLUDE_DIR} ${MSGPACK_INCLUDE_DIR})
+  target_link_libraries(${NAME} PUBLIC ${SECP256K1_LIBRARY})
+  message(STATUS "ccapi_core: hyperliquid execution management enabled")
+else()
+  target_compile_definitions(${NAME} PRIVATE CCAPI_DISABLE_HYPERLIQUID_EXECUTION_MANAGEMENT)
+  message(STATUS "ccapi_core: secp256k1/msgpack not found, hyperliquid execution management disabled (market data only)")
+endif()
 
 target_include_directories(${NAME} PUBLIC
   $<BUILD_INTERFACE:${CCAPI_PROJECT_DIR}/include>

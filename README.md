@@ -1,3 +1,11 @@
+[!IMPORTANT]
+⚠️ Action Required for OKX Users — Update Before October 31, 2026
+
+If you use OKX, please update to our latest stable release before October 31, 2026 to ensure compatibility with the upcoming discontinuation of OKX WebSocket Port 8443.
+
+For more details, see the [official OKX announcement](https://www.okx.com/help/okx-websocket-port-8443-discontinuation-announcement).
+
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/ktechhub/doctoc)*
@@ -46,6 +54,8 @@
       - [Override exchange urls](#override-exchange-urls)
       - [Connect to a proxy](#connect-to-a-proxy)
       - [Reduce build time](#reduce-build-time)
+  - [Exchange Specific Notes](#exchange-specific-notes)
+    - [Hyperliquid](#hyperliquid)
   - [Performance Tuning](#performance-tuning)
   - [Known Issues and Workarounds](#known-issues-and-workarounds)
 
@@ -57,8 +67,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations.
 * Supported exchanges:
-  * Market Data: ascendex, [binance](https://accounts.maxweb.academy/register?ref=1116718520), [binance-usds-futures](https://accounts.maxweb.academy/register?ref=1116718520), [binance-coin-futures](https://accounts.maxweb.academy/register?ref=1116718520), bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, [bybit](https://www.bybit.com/invite?ref=XNYP2K), coinbase, [cryptocom](https://crypto.com/exch/tqj4b8x48w), deribit, [gateio](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), [gateio-perpetual-futures](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), gemini, [huobi](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-usdt-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-coin-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), kraken, kraken-futures, kucoin, kucoin-futures, mexc, mexc-futures, [okx](https://www.okx.com/join/47636709).
-  * Execution Management: ascendex, [binance](https://accounts.maxweb.academy/register?ref=1116718520), [binance-usds-futures](https://accounts.maxweb.academy/register?ref=1116718520), [binance-coin-futures](https://accounts.maxweb.academy/register?ref=1116718520), bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, [bybit](https://www.bybit.com/invite?ref=XNYP2K), coinbase, [cryptocom](https://crypto.com/exch/tqj4b8x48w), deribit, [gateio](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), [gateio-perpetual-futures](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), gemini, [huobi](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-usdt-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-coin-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), kraken, kraken-futures, kucoin, kucoin-futures, mexc, [okx](https://www.okx.com/join/47636709).
+  * Market Data: ascendex, [binance](https://accounts.maxweb.academy/register?ref=1116718520), [binance-usds-futures](https://accounts.maxweb.academy/register?ref=1116718520), [binance-coin-futures](https://accounts.maxweb.academy/register?ref=1116718520), bitfinex, [bitget](https://bonus.bitget.com/0V0WA1), [bitget-futures](https://bonus.bitget.com/0V0WA1), [bitget-uta](https://bonus.bitget.com/0V0WA1), bitmart, bitmex, bitstamp, [bybit](https://www.bybit.com/invite?ref=XNYP2K), coinbase, [cryptocom](https://crypto.com/exch/tqj4b8x48w), deribit, [gateio](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), [gateio-perpetual-futures](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), gemini, [huobi](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-usdt-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-coin-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [hyperliquid](https://app.hyperliquid.xyz/), kraken, kraken-futures, kucoin, kucoin-futures, mexc, mexc-futures, [okx](https://www.okx.com/join/47636709).
+  * Execution Management: ascendex, [binance](https://accounts.maxweb.academy/register?ref=1116718520), [binance-usds-futures](https://accounts.maxweb.academy/register?ref=1116718520), [binance-coin-futures](https://accounts.maxweb.academy/register?ref=1116718520), bitfinex, [bitget](https://bonus.bitget.com/0V0WA1), [bitget-futures](https://bonus.bitget.com/0V0WA1), [bitget-uta](https://bonus.bitget.com/0V0WA1), bitmart, bitmex, bitstamp, [bybit](https://www.bybit.com/invite?ref=XNYP2K), coinbase, [cryptocom](https://crypto.com/exch/tqj4b8x48w), deribit, [gateio](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), [gateio-perpetual-futures](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), gemini, [huobi](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-usdt-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-coin-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [hyperliquid](https://app.hyperliquid.xyz/), kraken, kraken-futures, kucoin, kucoin-futures, mexc, [okx](https://www.okx.com/join/47636709).
   * FIX: [binance](https://accounts.maxweb.academy/register?ref=1116718520), coinbase, gemini.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
 * For any questions, email hello@cryptochassis.com.
@@ -805,7 +815,7 @@ session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, req
 ```
 
 #### Specify instrument type
-Some exchanges (i.e. bybit) might need instrument type for `Subscription`. Use `Subscription`'s `setInstrumentType` method.
+Some exchanges (i.e. bybit, bitget-uta) might need instrument type for `Subscription`. Use `Subscription`'s `setInstrumentType` method.
 ```
 Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH");
 subscription.setInstrumentType("spot");
@@ -1076,6 +1086,36 @@ Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "", "", {}, "172.3
 
 #### Reduce build time
 The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/reduce_build_time).
+
+## Exchange Specific Notes
+### Hyperliquid
+* If you need execution management, secp256k1 and msgpack are needed. For example, a CMakeLists.txt for macOS will look like
+```
+if(APPLE)
+  find_path(SECP256K1_INCLUDE_DIR secp256k1.h PATHS /opt/homebrew/include)
+  find_path(
+    MSGPACK_INCLUDE_DIR
+    NAMES msgpack.hpp
+    PATHS /opt/homebrew/include)
+
+  find_library(SECP256K1_LIBRARY secp256k1 PATHS /opt/homebrew/lib)
+  find_library(MSGPACKC_LIBRARY msgpackc PATHS /opt/homebrew/lib)
+endif()
+
+add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HYPERLIQUID)
+add_executable(${NAME} main.cpp)
+add_dependencies(${NAME} boost rapidjson)
+
+target_include_directories(${NAME} PRIVATE ${SECP256K1_INCLUDE_DIR}
+                                           ${MSGPACK_INCLUDE_DIR})
+target_link_libraries(${NAME} PRIVATE ${SECP256K1_LIBRARY} ${MSGPACKC_LIBRARY})
+```
+* For create order and cancel order, please provide hyperliquid's asset id as instrument (e.g. BTC = 0 on mainnet. See https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/asset-ids). For example,
+```
+Request request(Request::Operation::CREATE_ORDER, "hyperliquid", "0");  // Corresponds to https://app.hyperliquid.xyz/trade/BTC
+```
+* For the client order ID, please use either request.generateNextClientOrderId() or your own implementation, as long as it complies with the Hyperliquid requirements: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#place-an-order. Orders submitted with an invalid client order ID will be rejected.
 
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).

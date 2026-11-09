@@ -156,3 +156,4 @@ package-lock.json
 # Local dev artifacts
 /compile_commands.json
 .cache/
+.vscode/

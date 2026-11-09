@@ -520,6 +520,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           message.setElementList(elementList);
           message.setCorrelationIdList({requestCorrelationId});
         }
+        this->requestCorrelationIdByWsRequestIdByConnectionIdMap.at(wsConnectionPtr->id).erase(wsRequestId);
       }
       messageList.emplace_back(std::move(message));
     } else {

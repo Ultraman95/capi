@@ -36,6 +36,14 @@ typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseco
  */
 class UtilString {
  public:
+  static std::string trimTrailingZeros(const std::string& input) {
+    std::string s = input;
+    if (s.find('.') == std::string::npos) return s;
+    while (!s.empty() && s.back() == '0') s.pop_back();
+    if (!s.empty() && s.back() == '.') s.pop_back();
+    return s;
+  }
+
   static bool startsWith(const std::string& str, const std::string& prefix) {
     return str.size() >= prefix.size() && std::memcmp(str.data(), prefix.data(), prefix.size()) == 0;
   }

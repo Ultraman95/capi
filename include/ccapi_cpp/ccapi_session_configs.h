@@ -42,6 +42,10 @@ class SessionConfigs {
 
   void setUrlWebsocketBase(const std::map<std::string, std::string>& urlWebsocketBase) { this->urlWebsocketBase = urlWebsocketBase; }
 
+  void setUrlWebsocketOrderEntryBase(const std::map<std::string, std::string>& urlWebsocketOrderEntryBase) {
+    this->urlWebsocketOrderEntryBase = urlWebsocketOrderEntryBase;
+  }
+
   void setUrlRestBase(const std::map<std::string, std::string>& urlRestBase) { this->urlRestBase = urlRestBase; }
 
   void setUrlFixBase(const std::map<std::string, std::string>& urlFixBase) { this->urlFixBase = urlFixBase; }
@@ -171,6 +175,11 @@ class SessionConfigs {
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS},
         {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_KLINE},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBitgetUta = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_BITGET_UTA_CHANNEL_TRADES},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITGET_UTA_CHANNEL_BOOKS},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BITGET_UTA_CHANNEL_KLINE},
+    };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitmart = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITMART_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITMART_CHANNEL_PUBLIC_DEPTH5},
@@ -182,6 +191,10 @@ class SessionConfigs {
     std::map<std::string, std::string> fieldWebsocketChannelMapMexcFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_TRANSACTION},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_DEPTH},
+    };
+    std::map<std::string, std::string> fieldWebsocketChannelMapHyperliquid = {
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_BBO},
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_TRADE},
     };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
@@ -258,6 +271,9 @@ class SessionConfigs {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitgetFutures) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITGET_FUTURES].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitgetUta) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITGET_UTA].push_back(fieldWebsocketChannel.first);
+    }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitmart) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITMART].push_back(fieldWebsocketChannel.first);
     }
@@ -266,6 +282,9 @@ class SessionConfigs {
     }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapMexcFutures) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_MEXC_FUTURES].push_back(fieldWebsocketChannel.first);
+    }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHyperliquid) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HYPERLIQUID].push_back(fieldWebsocketChannel.first);
     }
     for (auto& x : this->exchangeFieldMap) {
       x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
@@ -297,9 +316,11 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_ASCENDEX, fieldWebsocketChannelMapAscendex},
         {CCAPI_EXCHANGE_NAME_BITGET, fieldWebsocketChannelMapBitget},
         {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, fieldWebsocketChannelMapBitgetFutures},
+        {CCAPI_EXCHANGE_NAME_BITGET_UTA, fieldWebsocketChannelMapBitgetUta},
         {CCAPI_EXCHANGE_NAME_BITMART, fieldWebsocketChannelMapBitmart},
         {CCAPI_EXCHANGE_NAME_MEXC, fieldWebsocketChannelMapMexc},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, fieldWebsocketChannelMapMexcFutures},
+        {CCAPI_EXCHANGE_NAME_HYPERLIQUID, fieldWebsocketChannelMapHyperliquid},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -330,9 +351,11 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_ASCENDEX, CCAPI_ASCENDEX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET, CCAPI_BITGET_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, CCAPI_BITGET_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET_UTA, CCAPI_BITGET_UTA_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_HYPERLIQUID, CCAPI_HYPERLIQUID_URL_WS_BASE},
     };
     this->urlWebsocketOrderEntryBase = {
         {CCAPI_EXCHANGE_NAME_OKX, CCAPI_OKX_URL_WS_BASE},
@@ -372,9 +395,11 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_ASCENDEX, CCAPI_ASCENDEX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET, CCAPI_BITGET_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, CCAPI_BITGET_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET_UTA, CCAPI_BITGET_UTA_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_HYPERLIQUID, CCAPI_HYPERLIQUID_URL_REST_BASE},
     };
   }
 
