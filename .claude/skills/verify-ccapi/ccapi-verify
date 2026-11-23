@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+# ccapi-verify: build, check, and drive ccapi the way a downstream user does.
+# Usage: ccapi-verify {build|doctor|drive|consumer|cleanup|help} [args]
+set -uo pipefail
+
+REPO="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"
+ART="${CCAPI_VERIFY_ARTIFACTS:-$REPO/.verify-artifacts}"
+SCRATCH="${CCAPI_VERIFY_SCRATCH:-${TMPDIR:-/tmp}/ccapi-verify-scratch}"
+LIB_DIR="$REPO/build/lib"
+TRADE_DIR="$REPO/trade/build"
+SUB_BIN="$TRADE_DIR/market_data_subscriber/market_data_subscriber"
+
+die() { echo "ccapi-verify: $*" >&2; exit 2; }
+
+usage() {
+  cat <<'EOF'
+ccapi-verify build
+    Configure (if needed) and build build/lib (libccapi_core.a) and trade/build
+    (market_data_subscriber). Exit 0 = both trees are up to date.
+ccapi-verify doctor [exchange ...]
+    Read-only. Reports git revision, whether lib/subscriber are stale vs the
+    sources, and whether each exchange's public REST host answers.
+    Default exchanges: okx binance-usds-futures kucoin bybit.
+ccapi-verify drive <feature-id> key=value ... [--expect data|failure] [--min-updates N]
+    Writes a config.ini from key=value pairs (exchange, symbol, field,
+    market_depth_max, conflate_interval_milliseconds, instrument_type,
+    duration_seconds), runs market_data_subscriber once, and writes
+    .verify-artifacts/<run-id>/{config.ini,stdout.txt,stderr.txt,meta.txt,summary.txt}.
+    Exit 0 = PASS, 1 = FAIL, 2 = harness error.
+ccapi-verify consumer [exchange symbol]
+    Builds a throwaway external project with find_package(ccapi) against
+    build/lib, runs it for 8s, records build log, compile flags and output.
+ccapi-verify cleanup
+    Kills processes this harness started that are still alive (by recorded
+    PID) and deletes the scratch dir. Never deletes .verify-artifacts/.
+EOF
+}
+
+run_id() { echo "$(date -u +%Y%m%dT%H%M%SZ)-$1-$$"; }
+
+git_meta() {
+  echo "git_head=$(git -C "$REPO" rev-parse --short HEAD)"
+  local dirty; dirty=$(git -C "$REPO" status --porcelain --untracked-files=no | wc -l)
+  echo "git_dirty_tracked_files=$dirty"
+  [ -f "$LIB_DIR/libccapi_core.a" ] && echo "lib_mtime=$(date -u -r "$LIB_DIR/libccapi_core.a" +%FT%TZ)"
+  [ -f "$SUB_BIN" ] && echo "subscriber_mtime=$(date -u -r "$SUB_BIN" +%FT%TZ)"
+}
+
+cmd_build() {
+  if [ ! -f "$LIB_DIR/build.ninja" ]; then
+    cmake -S "$REPO/src" -B "$LIB_DIR" -G Ninja || die "configure build/lib failed"
+  fi
+  ninja -C "$LIB_DIR" || die "build/lib failed"
+  if [ ! -f "$TRADE_DIR/build.ninja" ]; then
+    cmake -S "$REPO/trade" -B "$TRADE_DIR" -G Ninja || die "configure trade/build failed"
+  fi
+  ninja -C "$TRADE_DIR" || die "trade/build failed"
+  [ -x "$SUB_BIN" ] || die "subscriber binary missing at $SUB_BIN"
+  echo "READY subscriber=$SUB_BIN"
+}
+
+ping_url() {
+  case "$1" in
+    okx) echo "https://www.okx.com/api/v5/public/time" ;;
+    binance) echo "https://api.binance.com/api/v3/ping" ;;
+    binance-usds-futures) echo "https://fapi.binance.com/fapi/v1/ping" ;;
+    binance-coin-futures) echo "https://dapi.binance.com/dapi/v1/ping" ;;
+    kucoin) echo "https://api.kucoin.com/api/v1/timestamp" ;;
+    kucoin-futures) echo "https://api-futures.kucoin.com/api/v1/timestamp" ;;
+    bybit) echo "https://api.bybit.com/v5/market/time" ;;
+    bitget|bitget-futures|bitget-uta) echo "https://api.bitget.com/api/v2/public/time" ;;
+    gateio|gateio-perpetual-futures) echo "https://api.gateio.ws/api/v4/spot/time" ;;
+    hyperliquid) echo "https://api.hyperliquid.xyz/info" ;;
+    *) echo "" ;;
+  esac
+}
+
+cmd_doctor() {
+  local bad=0
+  git_meta
+  if [ ! -f "$LIB_DIR/build.ninja" ]; then echo "lib: NOT CONFIGURED (run: ccapi-verify build)"; bad=1
+  elif ninja -n -C "$LIB_DIR" 2>&1 | grep -q 'no work to do'; then echo "lib: up to date"
+  else echo "lib: STALE (sources changed since last build; run: ccapi-verify build)"; bad=1; fi
+  if [ ! -f "$TRADE_DIR/build.ninja" ]; then echo "subscriber: NOT CONFIGURED (run: ccapi-verify build)"; bad=1
+  elif ninja -n -C "$TRADE_DIR" 2>&1 | grep -q 'no work to do'; then echo "subscriber: up to date"
+  else echo "subscriber: STALE (needs relink; run: ccapi-verify build)"; bad=1; fi
+  local exchanges=("$@")
+  [ ${#exchanges[@]} -eq 0 ] && exchanges=(okx binance-usds-futures kucoin bybit)
+  for ex in "${exchanges[@]}"; do
+    local url code; url=$(ping_url "$ex")
+    if [ -z "$url" ]; then echo "net $ex: no probe URL known (drive it directly)"; continue; fi
+    if [ "$ex" = hyperliquid ]; then
+      code=$(curl -sS -m 6 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"type":"meta"}' "$url" 2>/dev/null)
+    else
+      code=$(curl -sS -m 6 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)
+    fi
+    if [ "$code" = 200 ]; then echo "net $ex: OK ($url)"; else echo "net $ex: UNREACHABLE http=$code ($url)"; bad=1; fi
+  done
+  [ $bad -eq 0 ] && echo "DOCTOR OK" || echo "DOCTOR FOUND PROBLEMS"
+  return $bad
+}
+
+summarize() {
+  # $1 run dir, $2 expect, $3 min updates, $4 exit code, $5 field, $6 market_depth_max
+  local dir="$1" expect="$2" min="$3" rc="$4" field="$5" depthmax="$6"
+  awk -v expect="$expect" -v min="$min" -v rc="$rc" -v field="$field" -v depthmax="$depthmax" '
+    /type = SUBSCRIPTION_STARTED/ { started++ }
+    /type = SUBSCRIPTION_SUCCESS/ { success++ }
+    /type = SUBSCRIPTION_FAILURE/ { failure++ }
+    /ERROR_MESSAGE = / { sub(/^ *ERROR_MESSAGE = /, ""); if (!firsterr) firsterr = $0 }
+    /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T/ {
+      rows++; ts = $1
+      if (!(ts in seen)) { seen[ts] = 1; updates++; order[updates] = ts; if (!first) first = ts; }
+      last = ts
+      if (match($0, /BID_PRICE=[0-9.eE+-]+/)) { p = substr($0, RSTART + 10, RLENGTH - 10) + 0; nb[ts]++; if (!(ts in bb) || p > bb[ts]) bb[ts] = p }
+      if (match($0, /ASK_PRICE=[0-9.eE+-]+/)) { p = substr($0, RSTART + 10, RLENGTH - 10) + 0; na[ts]++; if (!(ts in ba) || p < ba[ts]) ba[ts] = p }
+    }
+    END {
+      maxb = 0; maxa = 0; crossed = 0
+      for (t in nb) if (nb[t] > maxb) maxb = nb[t]
+      for (t in na) if (na[t] > maxa) maxa = na[t]
+      for (t in bb) if ((t in ba) && bb[t] >= ba[t]) crossed++
+      printf "exit_code=%d\nsubscription_started=%d\nsubscription_success=%d\nsubscription_failure=%d\n", rc, started, success, failure
+      printf "data_rows=%d\ndistinct_update_timestamps=%d\nfirst_update=%s\nlast_update=%s\n", rows, updates, first, last
+      if (field == "MARKET_DEPTH") printf "max_bid_levels_per_update=%d\nmax_ask_levels_per_update=%d\ncrossed_book_updates=%d\n", maxb, maxa, crossed
+      if (firsterr) printf "first_error=%s\n", firsterr
+      verdict = "FAIL"; why = ""
+      if (rc != 0) why = "subscriber exit code " rc
+      else if (expect == "data") {
+        if (failure > 0) why = "SUBSCRIPTION_FAILURE received"
+        else if (updates < min) why = "only " updates " updates (< " min ")"
+        else if (field == "MARKET_DEPTH" && crossed > 0) why = crossed " crossed-book updates (best bid >= best ask)"
+        else if (field == "MARKET_DEPTH" && (maxb > depthmax || maxa > depthmax)) why = "more levels than market_depth_max=" depthmax
+        else verdict = "PASS"
+      } else if (expect == "failure") {
+        if (failure < 1) why = "no SUBSCRIPTION_FAILURE event"
+        else if (rows > 0) why = "data arrived despite expected failure"
+        else verdict = "PASS"
+      }
+      printf "verdict=%s\n", verdict
+      if (why != "") printf "reason=%s\n", why
+    }' "$dir/stdout.txt"
+}
+
+cmd_drive() {
+  [ $# -ge 1 ] || die "drive needs a feature id"
+  local feature="$1"; shift
+  local expect=data min=3 kv=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --expect) expect="$2"; shift 2 ;;
+      --min-updates) min="$2"; shift 2 ;;
+      *=*) kv+=("$1"); shift ;;
+      *) die "unexpected argument: $1" ;;
+    esac
+  done
+  [ "$expect" = data ] || [ "$expect" = failure ] || die "--expect must be data or failure"
+  [ -x "$SUB_BIN" ] || die "subscriber not built; run: ccapi-verify build"
+  local id dir; id=$(run_id "$feature"); dir="$ART/$id"; mkdir -p "$dir"
+  local duration=10 field=MARKET_DEPTH depthmax=5
+  {
+    echo "# generated by ccapi-verify drive $feature"
+    for p in "${kv[@]}"; do
+      echo "${p%%=*} = ${p#*=}"
+      [ "${p%%=*}" = duration_seconds ] && duration="${p#*=}"
+      [ "${p%%=*}" = field ] && field="${p#*=}"
+      [ "${p%%=*}" = market_depth_max ] && depthmax="${p#*=}"
+    done
+    grep -q '^duration_seconds' <(printf '%s\n' "${kv[@]}") || echo "duration_seconds = $duration"
+  } > "$dir/config.ini"
+  [ "$duration" -gt 0 ] 2>/dev/null || die "duration_seconds must be > 0 for a verification run"
+  {
+    echo "feature=$feature"; echo "expect=$expect"; echo "min_updates=$min"
+    echo "command=$SUB_BIN $dir/config.ini"; echo "started_utc=$(date -u +%FT%TZ)"; git_meta
+  } > "$dir/meta.txt"
+  timeout --kill-after=5 $((duration + 30)) "$SUB_BIN" "$dir/config.ini" > "$dir/stdout.txt" 2> "$dir/stderr.txt" &
+  local pid=$!
+  echo "$pid" > "$dir/pid"
+  wait "$pid"; local rc=$?
+  rm -f "$dir/pid"
+  echo "finished_utc=$(date -u +%FT%TZ)" >> "$dir/meta.txt"
+  summarize "$dir" "$expect" "$min" "$rc" "$field" "$depthmax" > "$dir/summary.txt"
+  echo "run_dir=$dir"
+  cat "$dir/summary.txt"
+  grep -q '^verdict=PASS' "$dir/summary.txt"
+}
+
+cmd_consumer() {
+  local exchange="${1:-okx}" symbol="${2:-BTC-USDT}"
+  local id dir src bld; id=$(run_id consumer); dir="$ART/$id"; src="$SCRATCH/$id/src"; bld="$SCRATCH/$id/build"
+  mkdir -p "$dir" "$src"
+  cat > "$src/CMakeLists.txt" <<'EOF'
+cmake_minimum_required(VERSION 3.14)
+project(ccapi_verify_consumer LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_package(ccapi REQUIRED)
+add_executable(consumer main.cpp)
+target_link_libraries(consumer PRIVATE ccapi::ccapi_core)
+EOF
+  cat > "$src/main.cpp" <<'EOF'
+#include "ccapi_cpp/ccapi_session.h"
+#include <atomic>
+#include <iostream>
+namespace ccapi {
+Logger* Logger::logger = nullptr;
+}
+std::atomic<int> rows{0}, failures{0};
+class Handler : public ccapi::EventHandler {
+ public:
+  void processEvent(const ccapi::Event& e, ccapi::Session*) override {
+    for (const auto& m : e.getMessageList()) {
+      if (m.getType() == ccapi::Message::Type::SUBSCRIPTION_FAILURE) ++failures;
+      if (e.getType() == ccapi::Event::Type::SUBSCRIPTION_DATA) rows += static_cast<int>(m.getElementList().size());
+    }
+  }
+};
+int main(int argc, char** argv) {
+  Handler h;
+  ccapi::Session s(ccapi::SessionOptions(), ccapi::SessionConfigs(), &h);
+  ccapi::Subscription sub(argv[1], argv[2], "MARKET_DEPTH", "MARKET_DEPTH_MAX=5");
+  s.subscribe(sub);
+  std::this_thread::sleep_for(std::chrono::seconds(8));
+  s.stop();
+  std::cout << "consumer_rows=" << rows << " consumer_failures=" << failures << std::endl;
+  return rows > 0 && failures == 0 ? 0 : 1;
+}
+EOF
+  cp "$src/CMakeLists.txt" "$src/main.cpp" "$dir/"
+  { echo "feature=library-integration"; echo "ccapi_DIR=$LIB_DIR"; git_meta; } > "$dir/meta.txt"
+  local t0 t1 rc
+  t0=$(date +%s.%N)
+  { cmake -S "$src" -B "$bld" -G Ninja -Dccapi_DIR="$LIB_DIR" && ninja -C "$bld"; } > "$dir/build.log" 2>&1; rc=$?
+  t1=$(date +%s.%N)
+  echo "build_exit_code=$rc" > "$dir/summary.txt"
+  echo "build_seconds=$(echo "$t1 - $t0" | bc)" >> "$dir/summary.txt"
+  if [ $rc -eq 0 ]; then
+    cp "$bld/compile_commands.json" "$dir/" 2>/dev/null
+    ninja -C "$bld" -t deps > "$dir/included_headers.txt" 2>&1
+    echo "included_headers_total=$(grep -c '^    /' "$dir/included_headers.txt")" >> "$dir/summary.txt"
+    echo "included_boost_headers=$(grep -c -i -E '/boost/|boost_subset' "$dir/included_headers.txt")" >> "$dir/summary.txt"
+    echo "included_asio_beast_headers=$(grep -c -E '/boost/(asio|beast)' "$dir/included_headers.txt")" >> "$dir/summary.txt"
+    echo "included_ccapi_service_headers=$(grep -c '/ccapi_cpp/service/' "$dir/included_headers.txt")" >> "$dir/summary.txt"
+    if grep -q -i 'boost' "$bld/compile_commands.json"; then echo "boost_dir_on_consumer_include_path=yes" >> "$dir/summary.txt"
+    else echo "boost_dir_on_consumer_include_path=no" >> "$dir/summary.txt"; fi
+    timeout --kill-after=5 40 "$bld/consumer" "$exchange" "$symbol" > "$dir/stdout.txt" 2> "$dir/stderr.txt" &
+    local pid=$!; echo "$pid" > "$dir/pid"; wait "$pid"; rc=$?; rm -f "$dir/pid"
+    echo "run_exit_code=$rc" >> "$dir/summary.txt"
+    cat "$dir/stdout.txt" >> "$dir/summary.txt"
+  fi
+  if [ $rc -eq 0 ] && grep -q '^included_asio_beast_headers=0$' "$dir/summary.txt" \
+     && grep -q '^included_ccapi_service_headers=0$' "$dir/summary.txt"; then echo "verdict=PASS" >> "$dir/summary.txt"
+  else echo "verdict=FAIL" >> "$dir/summary.txt"; fi
+  echo "run_dir=$dir"; cat "$dir/summary.txt"
+  grep -q '^verdict=PASS' "$dir/summary.txt"
+}
+
+cmd_cleanup() {
+  local killed=0
+  if [ -d "$ART" ]; then
+    while IFS= read -r pf; do
+      local pid; pid=$(cat "$pf")
+      if kill -0 "$pid" 2>/dev/null; then kill "$pid" && killed=$((killed + 1)); fi
+      rm -f "$pf"
+    done < <(find "$ART" -name pid -type f)
+  fi
+  rm -rf "$SCRATCH"
+  echo "cleanup: killed=$killed scratch_removed=$SCRATCH artifacts_kept=$ART"
+}
+
+case "${1:-help}" in
+  build) shift; cmd_build "$@" ;;
+  doctor) shift; cmd_doctor "$@" ;;
+  drive) shift; cmd_drive "$@" ;;
+  consumer) shift; cmd_consumer "$@" ;;
+  cleanup) shift; cmd_cleanup "$@" ;;
+  help|-h|--help) usage ;;
+  *) usage; exit 2 ;;
+esac

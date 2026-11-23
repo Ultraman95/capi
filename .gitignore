@@ -157,3 +157,6 @@ package-lock.json
 /compile_commands.json
 .cache/
 .vscode/
+
+# ccapi-verify evidence (see .claude/skills/verify-ccapi)
+/.verify-artifacts/
