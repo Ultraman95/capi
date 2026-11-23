@@ -120,7 +120,8 @@ summarize() {
   awk -v expect="$expect" -v min="$min" -v rc="$rc" -v field="$field" -v depthmax="$depthmax" '
     /type = SUBSCRIPTION_STARTED/ { started++ }
     /type = SUBSCRIPTION_SUCCESS/ { success++ }
-    /type = SUBSCRIPTION_FAILURE/ { failure++ }
+    /type = SUBSCRIPTION_FAILURE,/ { failure++ }
+    /type = SUBSCRIPTION_FAILURE_DUE_TO_CONNECTION_FAILURE,/ { connfailure++ }
     /ERROR_MESSAGE = / { sub(/^ *ERROR_MESSAGE = /, ""); if (!firsterr) firsterr = $0 }
     /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T/ {
       rows++; ts = $1
@@ -134,7 +135,7 @@ summarize() {
       for (t in nb) if (nb[t] > maxb) maxb = nb[t]
       for (t in na) if (na[t] > maxa) maxa = na[t]
       for (t in bb) if ((t in ba) && bb[t] >= ba[t]) crossed++
-      printf "exit_code=%d\nsubscription_started=%d\nsubscription_success=%d\nsubscription_failure=%d\n", rc, started, success, failure
+      printf "exit_code=%d\nsubscription_started=%d\nsubscription_success=%d\nsubscription_failure=%d\nsubscription_failure_due_to_connection_failure=%d\n", rc, started, success, failure, connfailure
       printf "data_rows=%d\ndistinct_update_timestamps=%d\nfirst_update=%s\nlast_update=%s\n", rows, updates, first, last
       if (field == "MARKET_DEPTH") printf "max_bid_levels_per_update=%d\nmax_ask_levels_per_update=%d\ncrossed_book_updates=%d\n", maxb, maxa, crossed
       if (firsterr) printf "first_error=%s\n", firsterr
