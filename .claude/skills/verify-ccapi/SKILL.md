@@ -67,6 +67,12 @@ $V consumer [exchange symbol]   # default: okx BTC-USDT
 
 Generates a fresh CMake project in the scratch dir that does `find_package(ccapi)` + `target_link_libraries(consumer PRIVATE ccapi::ccapi_core)` against `build/lib`, builds it, runs it for 8 s, and records the headers the consumer TU actually included (`ninja -t deps` → `included_headers.txt`). PASS needs a clean build, `included_asio_beast_headers=0` and `included_ccapi_service_headers=0` (the thin-public-header contract in CLAUDE.md: user TUs never see `service/*.h` or asio/beast), and `consumer_rows>0 consumer_failures=0`. `included_boost_headers` and `boost_dir_on_consumer_include_path` are informational; see features/library-integration.md.
 
+```bash
+$V consumer-install [exchange symbol]   # default: okx BTC-USDT
+```
+
+The downstream-machine check. Runs `cmake --install build/lib` into a scratch prefix, then builds the same consumer through `CMAKE_PREFIX_PATH` with every boost directory hidden: `-nostdinc` plus filtered symlink copies of the compiler's default include dirs, OpenSSL/zlib include dirs redirected to those copies, and `HOME=/nonexistent`. A canary `#include <boost/version.hpp>` must fail first, and after the build no include dir on the consumer's command line may contain `boost/` (`boost_hidden=yes`). PASS additionally needs `included_boost_headers=0`. Use it whenever `src/CMakeLists.txt`, `src/ccapiConfig.cmake.in`, or any public header changes. (Real namespace isolation with bwrap/unshare is blocked on this host by `kernel.apparmor_restrict_unprivileged_userns=1`; this compiler-level hiding is the substitute.)
+
 ## Evidence
 
 Every drive and consumer run writes `.verify-artifacts/<UTC>-<feature-id>-<pid>/` (gitignored, override with `CCAPI_VERIFY_ARTIFACTS`):
@@ -75,7 +81,7 @@ Every drive and consumer run writes `.verify-artifacts/<UTC>-<feature-id>-<pid>/
 - `stdout.txt` / `stderr.txt` — every `[STATUS]` event with its raw exchange payload (`INFO_MESSAGE` / `ERROR_MESSAGE`) and every data element line (the resulting state).
 - `meta.txt` — feature id, command, start/finish time, `git_head`, dirty count, lib/subscriber mtimes. Proof is only valid for the revision recorded here; if `git_dirty_tracked_files` > 0, say the proof covers uncommitted edits.
 - `summary.txt` — counts, depth checks, `verdict=`, `reason=`.
-- consumer runs add `CMakeLists.txt`, `main.cpp`, `build.log`, `compile_commands.json`, `included_headers.txt`.
+- consumer runs add `CMakeLists.txt`, `main.cpp`, `build.log`, `compile_commands.json`, `included_headers.txt`; `consumer-install` also adds `install.log`, `compiler_flags.txt`, `canary.log`.
 
 Proof standards:
 
@@ -95,4 +101,4 @@ Kills any subscriber/consumer process whose recorded PID is still alive (only pr
 
 ## Helpers
 
-- `.claude/skills/verify-ccapi/ccapi-verify` — the only helper; `build | doctor | drive | consumer | cleanup | help`. Bash, needs `cmake`, `ninja`, `curl`, `awk`, `bc`, `timeout`.
+- `.claude/skills/verify-ccapi/ccapi-verify` — the only helper; `build | doctor | drive | consumer | consumer-install | cleanup | help`. Bash, needs `cmake`, `ninja`, `curl`, `awk`, `bc`, `jq`, `timeout`.

@@ -32,7 +32,7 @@ Each feature file has an H1 title and one paragraph, then exactly four H2 sectio
 - [Market depth subscription](./market-depth.md) — `MARKET_DEPTH` on okx (1/5/20 levels), binance-usds-futures, kucoin, bybit, hyperliquid; level cap and uncrossed-book checks.
 - [Trade stream subscription](./trade-stream.md) — `TRADE` ticks with price, size, side, trade id.
 - [Subscription failure reporting](./subscription-failure.md) — a bad subscription surfaces as a `SUBSCRIPTION_FAILURE` event instead of silence.
-- [Library integration](./library-integration.md) — an external CMake project consumes the lib with `find_package(ccapi)` and never sees boost.
+- [Library integration](./library-integration.md) — an external CMake project consumes the build tree or an installed copy with `find_package(ccapi)`; the installed copy builds with every boost directory hidden.
 
 ## Not yet mapped
 

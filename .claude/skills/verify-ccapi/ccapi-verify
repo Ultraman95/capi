@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ccapi-verify: build, check, and drive ccapi the way a downstream user does.
-# Usage: ccapi-verify {build|doctor|drive|consumer|cleanup|help} [args]
+# Usage: ccapi-verify {build|doctor|drive|consumer|consumer-install|cleanup|help} [args]
 set -uo pipefail
 
 REPO="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"
@@ -29,7 +29,14 @@ ccapi-verify drive <feature-id> key=value ... [--expect data|failure] [--min-upd
     Exit 0 = PASS, 1 = FAIL, 2 = harness error.
 ccapi-verify consumer [exchange symbol]
     Builds a throwaway external project with find_package(ccapi) against
-    build/lib, runs it for 8s, records build log, compile flags and output.
+    build/lib, runs it for 8s (market depth plus a setTimer fire and a
+    cancelTimer), records build log, compile flags, included headers, output.
+ccapi-verify consumer-install [exchange symbol]
+    Installs build/lib into a scratch prefix, hides every boost directory from
+    the compiler (-nostdinc + filtered copies of the default include dirs,
+    proven by a canary #include <boost/version.hpp> that must fail) and HOME,
+    then builds and runs the same consumer via CMAKE_PREFIX_PATH. PASS also
+    requires included_boost_headers=0.
 ccapi-verify cleanup
     Kills processes this harness started that are still alive (by recorded
     PID) and deletes the scratch dir. Never deletes .verify-artifacts/.
@@ -185,10 +192,8 @@ cmd_drive() {
   grep -q '^verdict=PASS' "$dir/summary.txt"
 }
 
-cmd_consumer() {
-  local exchange="${1:-okx}" symbol="${2:-BTC-USDT}"
-  local id dir src bld; id=$(run_id consumer); dir="$ART/$id"; src="$SCRATCH/$id/src"; bld="$SCRATCH/$id/build"
-  mkdir -p "$dir" "$src"
+write_consumer_src() {
+  local src="$1"
   cat > "$src/CMakeLists.txt" <<'EOF'
 cmake_minimum_required(VERSION 3.14)
 project(ccapi_verify_consumer LANGUAGES CXX)
@@ -206,6 +211,7 @@ namespace ccapi {
 Logger* Logger::logger = nullptr;
 }
 std::atomic<int> rows{0}, failures{0};
+std::atomic<bool> timerFired{false}, timerCanceled{false};
 class Handler : public ccapi::EventHandler {
  public:
   void processEvent(const ccapi::Event& e, ccapi::Session*) override {
@@ -220,40 +226,119 @@ int main(int argc, char** argv) {
   ccapi::Session s(ccapi::SessionOptions(), ccapi::SessionConfigs(), &h);
   ccapi::Subscription sub(argv[1], argv[2], "MARKET_DEPTH", "MARKET_DEPTH_MAX=5");
   s.subscribe(sub);
-  std::this_thread::sleep_for(std::chrono::seconds(8));
+  s.setTimer("fire", 200, [](const std::error_code&) {}, [] { timerFired = true; });
+  s.setTimer("cancel", 60000,
+             [](const std::error_code& ec) {
+               timerCanceled = true;
+               std::cout << "timer_cancel_error=" << ec.value() << " (" << ec.message() << ")" << std::endl;
+             },
+             [] {});
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  s.cancelTimer("cancel");
+  std::this_thread::sleep_for(std::chrono::seconds(7));
   s.stop();
-  std::cout << "consumer_rows=" << rows << " consumer_failures=" << failures << std::endl;
-  return rows > 0 && failures == 0 ? 0 : 1;
+  std::cout << "consumer_rows=" << rows << " consumer_failures=" << failures << " timer_fired=" << timerFired
+            << " timer_canceled=" << timerCanceled << std::endl;
+  return rows > 0 && failures == 0 && timerFired && timerCanceled ? 0 : 1;
 }
 EOF
+}
+
+# Builds a filtered copy of every default C++ include dir that contains boost/,
+# then prints compiler flags that use only the filtered dirs (-nostdinc).
+boost_free_flags() {
+  local work="$1" flags="-nostdinc" d n i=0
+  while IFS= read -r d; do
+    d="${d# }"
+    if [ -e "$d/boost" ]; then
+      i=$((i + 1)); mkdir -p "$work/inc$i"
+      for n in "$d"/*; do [ "$(basename "$n")" = boost ] || ln -s "$n" "$work/inc$i/"; done
+      flags="$flags -isystem $work/inc$i"
+      echo "$d $work/inc$i" >> "$work/incmap"
+    else
+      flags="$flags -isystem $d"
+    fi
+  done < <(echo | ${CXX:-c++} -std=c++20 -xc++ -E -v - 2>&1 | sed -n '/#include <...> search starts here/,/End of search list/p' | sed '1d;$d')
+  echo "$flags"
+}
+
+# $1 = tree (build tree via ccapi_DIR) | install (cmake --install + boost hidden + HOME hidden)
+consumer_run() {
+  local mode="$1" exchange="${2:-okx}" symbol="${3:-BTC-USDT}"
+  local feature=consumer; [ "$mode" = install ] && feature=consumer-install
+  local id dir src bld; id=$(run_id "$feature"); dir="$ART/$id"; src="$SCRATCH/$id/src"; bld="$SCRATCH/$id/build"
+  mkdir -p "$dir" "$src"
+  write_consumer_src "$src"
   cp "$src/CMakeLists.txt" "$src/main.cpp" "$dir/"
-  { echo "feature=library-integration"; echo "ccapi_DIR=$LIB_DIR"; git_meta; } > "$dir/meta.txt"
-  local t0 t1 rc
+  { echo "feature=library-integration mode=$mode"; git_meta; } > "$dir/meta.txt"
+  local cfg=() envp=() rc
+  : > "$dir/summary.txt"
+  if [ "$mode" = install ]; then
+    local prefix="$SCRATCH/$id/prefix" flags
+    cmake --install "$LIB_DIR" --prefix "$prefix" > "$dir/install.log" 2>&1 || { echo "install_exit_code=1" >> "$dir/summary.txt"; echo "verdict=FAIL" >> "$dir/summary.txt"; echo "run_dir=$dir"; cat "$dir/summary.txt"; return 1; }
+    flags=$(boost_free_flags "$SCRATCH/$id")
+    echo "$flags" > "$dir/compiler_flags.txt"
+    printf '#include <boost/version.hpp>\nint main() {}\n' > "$SCRATCH/$id/canary.cpp"
+    if ${CXX:-c++} -std=c++20 $flags -c "$SCRATCH/$id/canary.cpp" -o /dev/null > "$dir/canary.log" 2>&1; then
+      echo "boost_hidden=no (canary #include <boost/version.hpp> compiled; harness cannot prove anything)" >> "$dir/summary.txt"
+      echo "verdict=FAIL" >> "$dir/summary.txt"; echo "run_dir=$dir"; cat "$dir/summary.txt"; return 2
+    fi
+    echo "boost_hidden=yes" >> "$dir/summary.txt"
+    echo "ccapi_prefix=$prefix" >> "$dir/meta.txt"
+    cfg=(-DCMAKE_PREFIX_PATH="$prefix" "-DCMAKE_CXX_FLAGS=$flags")
+    # OpenSSL::SSL / ZLIB::ZLIB carry their include dir (usually /usr/include) to the
+    # consumer; point them at the filtered copy so they cannot re-expose boost.
+    local hdr var orig mapped
+    for pair in "openssl/ssl.h OPENSSL_INCLUDE_DIR" "zlib.h ZLIB_INCLUDE_DIR"; do
+      hdr=${pair% *}; var=${pair#* }
+      orig=$(echo "#include <$hdr>" | ${CXX:-c++} -xc++ -E -M - 2>/dev/null | tr ' \\' '\n\n' | grep -m1 "/$hdr\$" | sed "s|/$hdr\$||")
+      mapped=$(awk -v o="$orig" '$1 == o { print $2 }' "$SCRATCH/$id/incmap" 2>/dev/null)
+      [ -n "$mapped" ] && cfg+=("-D$var=$mapped")
+    done
+    envp=(HOME=/nonexistent)
+  else
+    echo "ccapi_DIR=$LIB_DIR" >> "$dir/meta.txt"
+    cfg=(-Dccapi_DIR="$LIB_DIR")
+  fi
+  local t0 t1
   t0=$(date +%s.%N)
-  { cmake -S "$src" -B "$bld" -G Ninja -Dccapi_DIR="$LIB_DIR" && ninja -C "$bld"; } > "$dir/build.log" 2>&1; rc=$?
+  { env "${envp[@]}" cmake -S "$src" -B "$bld" -G Ninja "${cfg[@]}" && env "${envp[@]}" ninja -C "$bld"; } > "$dir/build.log" 2>&1; rc=$?
   t1=$(date +%s.%N)
-  echo "build_exit_code=$rc" > "$dir/summary.txt"
+  echo "build_exit_code=$rc" >> "$dir/summary.txt"
   echo "build_seconds=$(echo "$t1 - $t0" | bc)" >> "$dir/summary.txt"
   if [ $rc -eq 0 ]; then
     cp "$bld/compile_commands.json" "$dir/" 2>/dev/null
     ninja -C "$bld" -t deps > "$dir/included_headers.txt" 2>&1
     echo "included_headers_total=$(grep -c '^    /' "$dir/included_headers.txt")" >> "$dir/summary.txt"
-    echo "included_boost_headers=$(grep -c -i -E '/boost/|boost_subset' "$dir/included_headers.txt")" >> "$dir/summary.txt"
+    echo "included_boost_headers=$(grep -c -E '/boost/|boost_subset' "$dir/included_headers.txt")" >> "$dir/summary.txt"
     echo "included_asio_beast_headers=$(grep -c -E '/boost/(asio|beast)' "$dir/included_headers.txt")" >> "$dir/summary.txt"
     echo "included_ccapi_service_headers=$(grep -c '/ccapi_cpp/service/' "$dir/included_headers.txt")" >> "$dir/summary.txt"
-    if grep -q -i 'boost' "$bld/compile_commands.json"; then echo "boost_dir_on_consumer_include_path=yes" >> "$dir/summary.txt"
+    if [ "$mode" = install ]; then
+      local leak="" inc
+      for inc in $(jq -r '.[0].command' "$bld/compile_commands.json" | tr ' ' '\n' | grep -A1 -E '^-I|^-isystem$' | grep -v -E '^(-I|-isystem|--)$'; jq -r '.[0].command' "$bld/compile_commands.json" | tr ' ' '\n' | grep -E '^-I.' | sed 's/^-I//'); do
+        [ -e "$inc/boost" ] && leak="$leak $inc"
+      done
+      if [ -n "$leak" ]; then sed -i 's/^boost_hidden=yes$/boost_hidden=no (leaked via include dir:'"$leak"')/' "$dir/summary.txt"; fi
+    fi
+    if grep -q -E 'boost_subset|/boost\b' "$bld/compile_commands.json"; then echo "boost_dir_on_consumer_include_path=yes" >> "$dir/summary.txt"
     else echo "boost_dir_on_consumer_include_path=no" >> "$dir/summary.txt"; fi
     timeout --kill-after=5 40 "$bld/consumer" "$exchange" "$symbol" > "$dir/stdout.txt" 2> "$dir/stderr.txt" &
     local pid=$!; echo "$pid" > "$dir/pid"; wait "$pid"; rc=$?; rm -f "$dir/pid"
     echo "run_exit_code=$rc" >> "$dir/summary.txt"
     cat "$dir/stdout.txt" >> "$dir/summary.txt"
   fi
-  if [ $rc -eq 0 ] && grep -q '^included_asio_beast_headers=0$' "$dir/summary.txt" \
-     && grep -q '^included_ccapi_service_headers=0$' "$dir/summary.txt"; then echo "verdict=PASS" >> "$dir/summary.txt"
-  else echo "verdict=FAIL" >> "$dir/summary.txt"; fi
+  local ok=0
+  [ $rc -eq 0 ] && grep -q '^included_asio_beast_headers=0$' "$dir/summary.txt" \
+    && grep -q '^included_ccapi_service_headers=0$' "$dir/summary.txt" && ok=1
+  [ "$mode" = install ] && ! grep -q '^included_boost_headers=0$' "$dir/summary.txt" && ok=0
+  [ "$mode" = install ] && ! grep -q '^boost_hidden=yes$' "$dir/summary.txt" && ok=0
+  if [ $ok -eq 1 ]; then echo "verdict=PASS" >> "$dir/summary.txt"; else echo "verdict=FAIL" >> "$dir/summary.txt"; fi
   echo "run_dir=$dir"; cat "$dir/summary.txt"
   grep -q '^verdict=PASS' "$dir/summary.txt"
 }
+
+cmd_consumer() { consumer_run tree "$@"; }
+cmd_consumer_install() { consumer_run install "$@"; }
 
 cmd_cleanup() {
   local killed=0
@@ -273,6 +358,7 @@ case "${1:-help}" in
   doctor) shift; cmd_doctor "$@" ;;
   drive) shift; cmd_drive "$@" ;;
   consumer) shift; cmd_consumer "$@" ;;
+  consumer-install) shift; cmd_consumer_install "$@" ;;
   cleanup) shift; cmd_cleanup "$@" ;;
   help|-h|--help) usage ;;
   *) usage; exit 2 ;;
