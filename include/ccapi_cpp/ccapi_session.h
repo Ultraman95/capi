@@ -9,11 +9,10 @@
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_subscription.h"
 
-#include <boost/system/error_code.hpp>
-
 #include <functional>
 #include <memory>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace ccapi {
@@ -85,7 +84,7 @@ class Session {
 
 #ifndef SWIG
   virtual void setImmediate(std::function<void()> successHandler);
-  virtual void setTimer(const std::string& id, long delayMilliseconds, std::function<void(const boost::system::error_code&)> errorHandler,
+  virtual void setTimer(const std::string& id, long delayMilliseconds, std::function<void(const std::error_code&)> errorHandler,
                         std::function<void()> successHandler);
   virtual void cancelTimer(const std::string& id);
   void purgeHttpConnectionPool(const std::string& serviceName = "", const std::string& exchangeName = "");

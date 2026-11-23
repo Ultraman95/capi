@@ -45,6 +45,8 @@ src/
 **外发布**:`cmake --install build/lib --prefix /opt/ccapi` 导出
 `libccapi_core.a` + 16 个公共头 + `ccapiConfig.cmake`,用户项目用
 `find_package(ccapi)` + `target_link_libraries(... ccapi::ccapi_core)` 一行集成。
+下游**不需要 boost**(公共头不含 boost,`Session::setTimer` 回调用 `std::error_code`),
+只需 OpenSSL、zlib 开发包。新增公共 API 时不要再引入 boost 类型。
 
 # API 稳定性
 

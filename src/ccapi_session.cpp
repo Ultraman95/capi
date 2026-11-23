@@ -803,7 +803,7 @@ struct Session::Impl {
     });
   }
 
-  void setTimer(const std::string& id, long delayMilliseconds, std::function<void(const boost::system::error_code&)> errorHandler,
+  void setTimer(const std::string& id, long delayMilliseconds, std::function<void(const std::error_code&)> errorHandler,
                 std::function<void()> successHandler) {
     boost::asio::post(*this->serviceContextPtr->ioContextPtr, [this, id, delayMilliseconds, errorHandler, successHandler]() {
       auto timerPtr = std::make_shared<boost::asio::steady_timer>(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliseconds));
@@ -941,7 +941,7 @@ void Session::onError(const Event::Type et, const Message::Type mt, const std::s
 
 #ifndef SWIG
 void Session::setImmediate(std::function<void()> h) { pImpl_->setImmediate(h); }
-void Session::setTimer(const std::string& id, long ms, std::function<void(const boost::system::error_code&)> eh, std::function<void()> sh) {
+void Session::setTimer(const std::string& id, long ms, std::function<void(const std::error_code&)> eh, std::function<void()> sh) {
   pImpl_->setTimer(id, ms, eh, sh);
 }
 void Session::cancelTimer(const std::string& id) { pImpl_->cancelTimer(id); }

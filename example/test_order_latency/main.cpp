@@ -34,7 +34,7 @@ class MyEventHandler : public EventHandler {
         for (int i = 0; i < this->numOrders; ++i) {
           sessionPtr->setTimer(
               std::to_string(i), 100 * i,
-              [](const boost::system::error_code&) {
+              [](const std::error_code&) {
                 std::cout << std::string("Timer error handler is triggered at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl;
               },
               [this, sessionPtr]() {

@@ -12,7 +12,7 @@ class MyEventHandler : public EventHandler {
       std::cout << std::string("Timer is set at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl;
       sessionPtr->setTimer(
           "id", 1000,
-          [](const boost::system::error_code&) { std::cout << std::string("Timer is canceled at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl; },
+          [](const std::error_code&) { std::cout << std::string("Timer is canceled at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl; },
           []() { std::cout << std::string("Timer is triggered at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl; });
     }
     ++numEvent;
