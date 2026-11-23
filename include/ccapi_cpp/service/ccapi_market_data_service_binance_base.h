@@ -160,6 +160,36 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     }
   }
 
+  // Binance 无法解析请求时回显的 "id" 为 null。
+  std::vector<std::string> correlationIdListOfSubscribeResponse(std::shared_ptr<WsConnection> wsConnectionPtr, const rj::Document& document) {
+    std::vector<std::string> correlationIdList;
+    auto itId = document.FindMember("id");
+    if (itId != document.MemberEnd() && itId->value.IsString() &&
+        this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnectionPtr->id) !=
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+      int id = std::stoi(itId->value.GetString());
+      if (this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.find(wsConnectionPtr->id) !=
+              this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.end() &&
+          this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnectionPtr->id).find(id) !=
+              this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnectionPtr->id).end()) {
+        for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnectionPtr->id).at(id)) {
+          std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+          std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).find(channelId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).end()) {
+            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).find(symbolId) !=
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).end()) {
+              std::vector<std::string> correlationIdList_2 =
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).at(symbolId);
+              correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+            }
+          }
+        }
+      }
+    }
+    return correlationIdList;
+  }
+
   void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     this->jsonDocumentAllocator.Clear();
@@ -170,37 +200,30 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       std::vector<Message> messageList;
       Message message;
       message.setTimeReceived(timeReceived);
-      std::vector<std::string> correlationIdList;
-      if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnectionPtr->id) !=
-          this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
-        int id = std::stoi(document["id"].GetString());
-        if (this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.find(wsConnectionPtr->id) !=
-                this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.end() &&
-            this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnectionPtr->id).find(id) !=
-                this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnectionPtr->id).end()) {
-          for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnectionPtr->id).at(id)) {
-            std::string channelId =
-                this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
-            std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
-            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).find(channelId) !=
-                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).end()) {
-              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).find(symbolId) !=
-                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).end()) {
-                std::vector<std::string> correlationIdList_2 =
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).at(symbolId);
-                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-              }
-            }
-          }
-        }
-      }
-      message.setCorrelationIdList(correlationIdList);
+      message.setCorrelationIdList(this->correlationIdListOfSubscribeResponse(wsConnectionPtr, document));
       message.setType(Message::Type::SUBSCRIPTION_STARTED);
       Element element;
       element.insert(CCAPI_INFO_MESSAGE, textMessageView);
       message.setElementList({element});
       messageList.emplace_back(std::move(message));
       event.setMessageList(messageList);
+    } else if (document.IsObject() && document.HasMember("error")) {
+      // 例:{"error":{"code":2,"msg":"Invalid request: invalid stream"},"id":0},随后 Binance 关闭连接。
+      event.setType(Event::Type::SUBSCRIPTION_STATUS);
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::SUBSCRIPTION_FAILURE);
+      auto correlationIdList = this->correlationIdListOfSubscribeResponse(wsConnectionPtr, document);
+      if (correlationIdList.empty()) {
+        for (const auto& subscription : wsConnectionPtr->subscriptionList) {
+          correlationIdList.push_back(subscription.getCorrelationId());
+        }
+      }
+      message.setCorrelationIdList(correlationIdList);
+      Element element;
+      element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
+      message.setElementList({element});
+      event.setMessageList({message});
     } else if (document.IsObject() && document.HasMember("stream") && document.HasMember("data")) {
       MarketDataMessage marketDataMessage;
       std::string exchangeSubscriptionId = document["stream"].GetString();
