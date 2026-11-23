@@ -42,6 +42,26 @@ Read-only. Prints `git_head`, `git_dirty_tracked_files`, lib/subscriber mtimes, 
 
 Last line `DOCTOR OK` (exit 0) or `DOCTOR FOUND PROBLEMS` (exit 1). Run it first, and again whenever a drive fails unexpectedly.
 
+## Verify a change (start here)
+
+```bash
+$V changed [--base <ref>] [--plan]
+```
+
+The default entry point for proving a diff. It collects every file changed against `<ref>` (default: merge-base with `origin/develop`; committed, uncommitted and untracked), maps each file to the checks it needs, then runs `build`, `doctor`, and those checks:
+
+| Changed file | Checks |
+|---|---|
+| `service/ccapi_market_data_service_<x>.h` | market-depth on the exchange(s) that file serves |
+| `service/ccapi_service.h`, `ccapi_market_data_service.h`, internal `ccapi_*.h`, `src/ccapi_session.cpp` | market-depth on okx, binance-usds-futures, kucoin + okx subscription-failure (+ consumer for `src/`) |
+| public header (`CCAPI_PUBLIC_HEADERS`), `src/CMakeLists.txt`, `src/ccapiConfig.cmake.in` | the shared set above + consumer + consumer-install |
+| `trade/**` | market-depth on okx |
+| this skill's own files | okx market-depth, okx subscription-failure, consumer, consumer-install |
+| execution-management / FIX service files | UNCOVERED (needs credentials) |
+| anything else (docs, examples, tests, binding) | listed as "no live check" |
+
+It writes `.verify-artifacts/<UTC>-changed-<pid>/summary.md` with the plan, one result line per check (verdict + run dir), and `changed_verdict=PASS|FAIL|INCOMPLETE`. Paste that file into a PR's `## Verification` section. Exit 0 = PASS, 1 = FAIL, 3 = INCOMPLETE. INCOMPLETE (an exchange without a recipe in `depth_args`, an unreachable exchange, or an uncovered execution file) is never reported as verified. `--plan` prints the plan and runs nothing. The mapping lives in `cmd_changed`, `stem_exchanges` and `depth_args`; extend it there rather than running ad-hoc drives, and note in `depth_args` which recipes have passed a live drive.
+
 ## Drive
 
 ```bash
@@ -101,4 +121,4 @@ Kills any subscriber/consumer process whose recorded PID is still alive (only pr
 
 ## Helpers
 
-- `.claude/skills/verify-ccapi/ccapi-verify` — the only helper; `build | doctor | drive | consumer | consumer-install | cleanup | help`. Bash, needs `cmake`, `ninja`, `curl`, `awk`, `bc`, `jq`, `timeout`.
+- `.claude/skills/verify-ccapi/ccapi-verify` — the only helper; `build | doctor | drive | consumer | consumer-install | changed | cleanup | help`. Bash, needs `cmake`, `ninja`, `curl`, `awk`, `bc`, `jq`, `timeout`.

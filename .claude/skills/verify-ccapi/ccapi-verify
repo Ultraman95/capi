@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ccapi-verify: build, check, and drive ccapi the way a downstream user does.
-# Usage: ccapi-verify {build|doctor|drive|consumer|consumer-install|cleanup|help} [args]
+# Usage: ccapi-verify {build|doctor|drive|consumer|consumer-install|changed|cleanup|help} [args]
 set -uo pipefail
 
 REPO="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"
@@ -37,6 +37,13 @@ ccapi-verify consumer-install [exchange symbol]
     proven by a canary #include <boost/version.hpp> that must fail) and HOME,
     then builds and runs the same consumer via CMAKE_PREFIX_PATH. PASS also
     requires included_boost_headers=0.
+ccapi-verify changed [--base <ref>] [--plan]
+    Diffs the working tree (committed + uncommitted + untracked) against
+    <ref> (default: merge-base with origin/develop), maps each changed file to
+    the checks it needs, runs build + doctor + those checks, and writes
+    .verify-artifacts/<run-id>/summary.md (paste into a PR's ## Verification).
+    --plan prints the plan without running anything.
+    Exit 0 = PASS, 1 = FAIL, 3 = INCOMPLETE (uncovered or unreachable checks).
 ccapi-verify cleanup
     Kills processes this harness started that are still alive (by recorded
     PID) and deletes the scratch dir. Never deletes .verify-artifacts/.
@@ -340,6 +347,146 @@ consumer_run() {
 cmd_consumer() { consumer_run tree "$@"; }
 cmd_consumer_install() { consumer_run install "$@"; }
 
+# ---- changed: pick and run the checks a diff needs -------------------------
+
+# exchange -> drive args for a MARKET_DEPTH check. "verified" rows passed a live
+# drive on 2026-11-23; the rest come from trade/market_data_subscriber/config.example.ini
+# and are unproven until their first run.
+depth_args() {
+  case "$1" in
+    okx) echo "symbol=BTC-USDT" ;;                                        # verified
+    binance-usds-futures) echo "symbol=BTCUSDT" ;;                        # verified
+    kucoin) echo "symbol=BTC-USDT" ;;                                     # verified
+    bybit) echo "symbol=BTCUSDT instrument_type=linear" ;;                # verified
+    hyperliquid) echo "symbol=BTC duration_seconds=20" ;;                 # verified (sparse pushes)
+    binance|binance-us) echo "symbol=BTCUSDT" ;;
+    binance-coin-futures) echo "symbol=BTCUSD_PERP" ;;
+    kucoin-futures) echo "symbol=XBTUSDTM" ;;
+    bitget) echo "symbol=BTCUSDT" ;;
+    bitget-futures) echo "symbol=BTCUSDT instrument_type=USDT-FUTURES" ;;
+    gateio|gateio-perpetual-futures|bitmart|cryptocom) echo "symbol=BTC_USDT" ;;
+    mexc) echo "symbol=BTCUSDT" ;;
+    mexc-futures) echo "symbol=BTC_USDT" ;;
+    huobi) echo "symbol=btcusdt" ;;
+    huobi-usdt-swap) echo "symbol=BTC-USDT" ;;
+    huobi-coin-swap) echo "symbol=BTC-USD" ;;
+    deribit) echo "symbol=BTC-PERPETUAL" ;;
+    coinbase) echo "symbol=BTC-USD" ;;
+    kraken) echo "symbol=XBT/USDT" ;;
+    kraken-futures) echo "symbol=PI_XBTUSD" ;;
+    bitmex) echo "symbol=XBTUSDT" ;;
+    bitfinex) echo "symbol=tBTCUSD" ;;
+    bitstamp) echo "symbol=btcusd" ;;
+    gemini) echo "symbol=BTCUSD" ;;
+    ascendex) echo "symbol=BTC/USDT" ;;
+    *) echo "" ;;
+  esac
+}
+
+# market-data service file stem -> exchanges it serves
+stem_exchanges() {
+  case "$1" in
+    binance_base) echo "binance binance-usds-futures" ;;
+    binance_derivatives_base) echo "binance-usds-futures binance-coin-futures" ;;
+    kucoin_base) echo "kucoin kucoin-futures" ;;
+    bitget_base) echo "bitget bitget-futures" ;;
+    gateio_base) echo "gateio gateio-perpetual-futures" ;;
+    huobi_base) echo "huobi huobi-usdt-swap" ;;
+    huobi_derivatives_base) echo "huobi-usdt-swap huobi-coin-swap" ;;
+    *) echo "${1//_/-}" ;;
+  esac
+}
+
+SHARED_EXCHANGES="okx binance-usds-futures kucoin"
+
+cmd_changed() {
+  local base="" plan_only=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --plan) plan_only=1; shift ;;
+      --base) base="$2"; shift 2 ;;
+      *) die "unexpected argument: $1 (usage: changed [--base <ref>] [--plan])" ;;
+    esac
+  done
+  if [ -z "$base" ]; then
+    base=$(git -C "$REPO" merge-base HEAD origin/develop 2>/dev/null) || die "no origin/develop; pass --base <ref>"
+  fi
+  local files
+  files=$( { git -C "$REPO" diff --name-only "$base"; git -C "$REPO" ls-files --others --exclude-standard; } | sort -u)
+  [ -n "$files" ] || { echo "changed: no changes against $base"; echo "changed_verdict=PASS (nothing to verify)"; return 0; }
+
+  local public; public=$(sed -n '/set(CCAPI_PUBLIC_HEADERS/,/)/p' "$REPO/src/CMakeLists.txt" | grep -o 'include/ccapi_cpp/[a-z_]*\.h')
+  declare -A depth=() why=()
+  local want_failure=0 want_consumer=0 want_install=0 uncovered=() nolive=() f stem ex
+  add_shared() { for ex in $SHARED_EXCHANGES; do depth[$ex]=1; done; want_failure=1; }
+  while IFS= read -r f; do
+    case "$f" in
+      include/ccapi_cpp/service/ccapi_market_data_service_*.h)
+        stem=${f#include/ccapi_cpp/service/ccapi_market_data_service_}; stem=${stem%.h}
+        if [ "$stem" = ccapi_market_data_service ]; then add_shared; else
+          for ex in $(stem_exchanges "$stem"); do depth[$ex]=1; done; fi
+        why[$f]="market-data service" ;;
+      include/ccapi_cpp/service/ccapi_market_data_service.h|include/ccapi_cpp/service/ccapi_service.h)
+        add_shared; why[$f]="shared service code" ;;
+      include/ccapi_cpp/service/ccapi_execution_management_service*|include/ccapi_cpp/service/ccapi_fix_service*)
+        uncovered+=("$f (execution/FIX: needs credentials, not driven by this harness)") ;;
+      include/ccapi_cpp/*.h)
+        if echo "$public" | grep -qx "$f"; then want_consumer=1; want_install=1; why[$f]="public header"; else why[$f]="internal header"; fi
+        add_shared ;;
+      src/ccapi_session.cpp) add_shared; want_consumer=1; why[$f]="library source" ;;
+      src/CMakeLists.txt|src/ccapiConfig.cmake.in) add_shared; want_consumer=1; want_install=1; why[$f]="library build/packaging" ;;
+      trade/*) depth[okx]=1; why[$f]="subscriber driver" ;;
+      .claude/skills/verify-ccapi/*) depth[okx]=1; want_failure=1; want_consumer=1; want_install=1; why[$f]="harness itself" ;;
+      *) nolive+=("$f") ;;
+    esac
+  done <<< "$files"
+
+  local id dir; id=$(run_id changed); dir="$ART/$id"; mkdir -p "$dir"
+  {
+    echo "# ccapi-verify changed"
+    echo; echo "- base: \`$(git -C "$REPO" rev-parse --short "$base")\`, head: \`$(git -C "$REPO" rev-parse --short HEAD)\`, uncommitted tracked files: $(git -C "$REPO" status --porcelain --untracked-files=no | wc -l)"
+    echo; echo "## Plan"
+    for ex in "${!depth[@]}"; do echo "- market-depth on \`$ex\`$( [ -z "$(depth_args "$ex")" ] && echo ' — no recipe, UNCOVERED')"; done | sort
+    [ $want_failure -eq 1 ] && echo "- subscription-failure on \`okx\`"
+    [ $want_consumer -eq 1 ] && echo "- consumer (build tree)"
+    [ $want_install -eq 1 ] && echo "- consumer-install (installed, boost hidden)"
+    for f in "${uncovered[@]}"; do echo "- UNCOVERED: $f"; done
+    for f in "${nolive[@]}"; do echo "- no live check: \`$f\`"; done
+  } > "$dir/summary.md"
+  cat "$dir/summary.md"
+  [ $plan_only -eq 1 ] && { echo; echo "plan_only=1 summary=$dir/summary.md"; return 0; }
+
+  local fails=0 incomplete=${#uncovered[@]} out rd verdict exs=()
+  record() { # $1 label, $2 rc, $3 output
+    rd=$(echo "$3" | sed -n 's/^run_dir=//p' | tail -1)
+    verdict=$(echo "$3" | grep -E '^verdict=|^reason=' | tr '\n' ' ')
+    echo "- $1 → ${verdict:-harness error rc=$2} \`${rd#$REPO/}\`" >> "$dir/results.md"
+    [ "$2" -eq 0 ] || fails=$((fails + 1))
+  }
+  : > "$dir/results.md"
+  out=$(cmd_build 2>&1); local rc=$?
+  echo "$out" | tail -1
+  if [ $rc -ne 0 ]; then echo "- build → FAIL" >> "$dir/results.md"; fails=$((fails + 1)); else
+    for ex in "${!depth[@]}"; do [ -n "$(depth_args "$ex")" ] && exs+=("$ex"); done
+    out=$(cmd_doctor "${exs[@]}" 2>&1); echo "$out" > "$dir/doctor.txt"
+    for ex in "${!depth[@]}"; do
+      if [ -z "$(depth_args "$ex")" ]; then echo "- market-depth \`$ex\` → UNCOVERED (no recipe in depth_args)" >> "$dir/results.md"; incomplete=$((incomplete + 1)); continue; fi
+      if echo "$out" | grep -q "^net $ex: UNREACHABLE"; then echo "- market-depth \`$ex\` → NOT VERIFIED (network unreachable)" >> "$dir/results.md"; incomplete=$((incomplete + 1)); continue; fi
+      local o; o=$(cmd_drive market-depth exchange="$ex" field=MARKET_DEPTH market_depth_max=5 $(depth_args "$ex") 2>&1); rc=$?
+      record "market-depth \`$ex\`" $rc "$o"
+    done
+    if [ $want_failure -eq 1 ]; then o=$(cmd_drive subscription-failure exchange=okx symbol=NOPE-USDT field=MARKET_DEPTH market_depth_max=5 duration_seconds=6 --expect failure 2>&1); record "subscription-failure \`okx\`" $? "$o"; fi
+    if [ $want_consumer -eq 1 ]; then o=$(consumer_run tree okx BTC-USDT 2>&1); record "consumer (build tree)" $? "$o"; fi
+    if [ $want_install -eq 1 ]; then o=$(consumer_run install okx BTC-USDT 2>&1); record "consumer-install" $? "$o"; fi
+  fi
+  for f in "${uncovered[@]}"; do echo "- UNCOVERED: $f" >> "$dir/results.md"; done
+  local final=PASS; [ $incomplete -gt 0 ] && final=INCOMPLETE; [ $fails -gt 0 ] && final=FAIL
+  { echo; echo "## Results"; sort "$dir/results.md"; echo; echo "changed_verdict=$final"; } >> "$dir/summary.md"
+  rm -f "$dir/results.md"
+  echo; sed -n '/^## Results/,$p' "$dir/summary.md"; echo "summary=$dir/summary.md"
+  case $final in PASS) return 0 ;; FAIL) return 1 ;; *) return 3 ;; esac
+}
+
 cmd_cleanup() {
   local killed=0
   if [ -d "$ART" ]; then
@@ -359,6 +506,7 @@ case "${1:-help}" in
   drive) shift; cmd_drive "$@" ;;
   consumer) shift; cmd_consumer "$@" ;;
   consumer-install) shift; cmd_consumer_install "$@" ;;
+  changed) shift; cmd_changed "$@" ;;
   cleanup) shift; cmd_cleanup "$@" ;;
   help|-h|--help) usage ;;
   *) usage; exit 2 ;;

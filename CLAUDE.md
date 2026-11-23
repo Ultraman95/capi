@@ -12,6 +12,13 @@
     再 `ninja -C test/build && (cd test/build && ctest)`。`BUILD_TEST_BUILD` 为 25 个
     "服务×交易所"组合各编译一次 ccapi_session.cpp,8 核约 9 分钟,平时不必开。
 
+# 开发与验证流程(pstack)
+
+- 任务走 `/poteto-mode` 的 playbook;改动在 worktree 分支上做,经 PR 合入 `develop`
+  (`develop` 开启了分支保护,不能直接推送)。
+- 验证用 `verify-ccapi` skill:交付前运行 `.claude/skills/verify-ccapi/ccapi-verify changed`,
+  把生成的 `summary.md` 贴进 PR 的 `## Verification`。单元测试、"能编译"都不算验证。
+
 # 关注范围
 
 - `binding/`(SWIG 生成的 Python/Java/C#/Go/JS 包装层)不是当前关注点,
